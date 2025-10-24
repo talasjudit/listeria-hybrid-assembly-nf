@@ -1,0 +1,25 @@
+# Nextflow
+work/
+.nextflow*
+results/
+.DS_Store
+
+# Singularity
+*.sif
+singularity_cache/
+
+# Testing
+tests/work/
+tests/.nextflow*
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+.nextflow.log*
