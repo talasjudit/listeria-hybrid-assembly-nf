@@ -26,12 +26,21 @@ nextflow.enable.dsl=2
 
 /*
 ========================================================================================
+    IMPORT WORKFLOWS
+========================================================================================
+*/
+
+// Import the installation workflow with alias to avoid naming conflict
+include { INSTALL as INSTALL_CONTAINERS } from '${projectDir}/workflows/install'
+
+/*
+========================================================================================
     PARAMETER VALIDATION & HELP
 ========================================================================================
 */
 
 // Load and validate parameters using nf-schema plugin
-include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
+include { validateParameters; paramsSummaryLog; samplesheetToList } from '${projectDir}/plugin/nf-schema'
 
 // Print help message if requested
 if (params.help) {
@@ -41,6 +50,10 @@ if (params.help) {
     ╚═══════════════════════════════════════════════════════════════╝
 
     Usage:
+      # Install containers (run on login node with internet)
+      nextflow run main.nf -entry INSTALL -profile singularity -resume
+
+      # Run pipeline (can run on compute nodes)
       nextflow run main.nf --input samplesheet.csv --outdir results -profile singularity,slurm
 
     Required Arguments:
@@ -65,19 +78,26 @@ if (params.help) {
       -profile local         Use local executor
       -profile test          Run with minimal test resources
 
+    Entry Points:
+      (default)              Run the assembly pipeline
+      -entry INSTALL         Download and cache containers
+
     Examples:
-      # Basic run on SLURM
+      # 1. Install containers first (on login node)
+      nextflow run main.nf -entry INSTALL -profile singularity -resume
+
+      # 2. Basic pipeline run on SLURM
       nextflow run main.nf -profile singularity,slurm \\
         --input samplesheet.csv \\
         --outdir results
 
-      # With Flye pre-assembly
+      # 3. With Flye pre-assembly
       nextflow run main.nf -profile singularity,slurm \\
         --input samplesheet.csv \\
         --outdir results \\
         --use_flye
 
-      # Local execution with custom resources
+      # 4. Local execution with custom resources
       nextflow run main.nf -profile singularity,local \\
         --input samplesheet.csv \\
         --outdir results \\
@@ -98,60 +118,42 @@ if (params.version) {
     exit 0
 }
 
-// Validate input parameters against schema
-validateParameters()
-
-// Print parameter summary
-log.info paramsSummaryLog(workflow)
-
 /*
 ========================================================================================
-    VALIDATE REQUIRED PARAMETERS
+    NAMED WORKFLOWS
 ========================================================================================
 */
 
-// Check that required parameters are provided
-if (!params.input) {
-    exit 1, "ERROR: --input parameter is required. Please provide a samplesheet CSV file."
-}
-
-// Check that input file exists
-if (!file(params.input).exists()) {
-    exit 1, "ERROR: Input samplesheet file not found: ${params.input}"
+/*
+ * WORKFLOW: INSTALL
+ * Download and cache all Singularity containers
+ * This should be run on a node with internet access (e.g., login node)
+ */
+workflow INSTALL {
+    INSTALL_CONTAINERS()
 }
 
 /*
-========================================================================================
-    IMPORT MODULES & SUBWORKFLOWS
-========================================================================================
-*/
-
-/*
- * SUBWORKFLOWS
- * Import subworkflows that handle complex multi-step logic
+ * WORKFLOW: LISTERIA_HYBRID_NF (Main Pipeline)
+ * Performs hybrid bacterial genome assembly
  */
-// TODO Phase 2: Uncomment as subworkflows are implemented
-// include { INPUT_CHECK } from './subworkflows/local/input_check'
-// include { QC_NANOPORE } from './subworkflows/local/qc_nanopore'
-// include { ASSEMBLY_HYBRID } from './subworkflows/local/assembly_hybrid'
-// include { QC_ASSEMBLY } from './subworkflows/local/qc_assembly'
-
-/*
- * MODULES
- * Import modules for single-process steps
- */
-// TODO Phase 2: Uncomment as modules are implemented
-// include { FASTP } from './modules/local/fastp'
-// include { FLYE } from './modules/local/flye'
-// include { MULTIQC } from './modules/local/multiqc'
-
-/*
-========================================================================================
-    MAIN WORKFLOW
-========================================================================================
-*/
-
-workflow {
+workflow LISTERIA_HYBRID_NF {
+    
+    // Validate input parameters against schema
+    validateParameters()
+    
+    // Print parameter summary
+    log.info paramsSummaryLog(workflow)
+    
+    // Check that required parameters are provided
+    if (!params.input) {
+        exit 1, "ERROR: --input parameter is required. Please provide a samplesheet CSV file."
+    }
+    
+    // Check that input file exists
+    if (!file(params.input).exists()) {
+        exit 1, "ERROR: Input samplesheet file not found: ${params.input}"
+    }
 
     /*
      * Print pipeline header
@@ -213,15 +215,15 @@ workflow {
      * STEP 3: QC Nanopore reads
      * ========================================================================
      * Subworkflow: QC_NANOPORE groups two processes that always run together
-     * - Adapter trimming with Porechop ABI
-     * - Quality filtering with Filtlong
-     * - Returns QC'd reads and logs
+     * - Porechop ABI: Remove adapters and barcodes
+     * - Filtlong: Length and quality filtering
+     * These are grouped because they always run sequentially on the same data
      */
     // TODO Phase 2: Implement Nanopore QC
     // QC_NANOPORE(ch_nanopore)
     //
     // ch_nanopore_filtered = QC_NANOPORE.out.reads
-    //   // Format: [meta, nanopore_filtered.fq.gz]
+    //   // Format: [meta, filtered.fq.gz]
     //
     // // Add Nanopore QC logs to MultiQC collection
     // ch_qc_reports = ch_qc_reports
@@ -229,37 +231,28 @@ workflow {
 
     /*
      * ========================================================================
-     * STEP 4 (Optional): Long-read assembly with Flye
+     * STEP 4: Optional Flye assembly (if requested)
      * ========================================================================
-     * Direct module: FLYE (single process)
-     * - Only runs if params.use_flye is true
-     * - Creates long-read assembly used to scaffold Unicycler
-     * - Improves assembly contiguity for complex genomes
+     * Direct module: FLYE (single process, conditional execution)
+     * - Long-read assembly from filtered Nanopore reads
+     * - Only runs if --use_flye is true
+     * - Creates assembly that Unicycler can use as scaffold
      *
-     * Decision: Run Flye?
-     * - Yes (use_flye=true): Better for complex genomes, more time/memory
-     * - No (use_flye=false): Faster, sufficient for most bacteria
+     * Conditional execution pattern:
+     * - If use_flye: FLYE produces ch_flye_assembly
+     * - If not: ch_flye_assembly is empty channel
+     * - Unicycler handles both cases automatically
      */
-    // TODO Phase 2: Implement conditional Flye assembly
-    //
-    // // Initialize empty channel for Flye assemblies
-    // ch_flye_assembly = Channel.empty()
-    //
-    // // Conditionally run Flye based on params.use_flye
+    // TODO Phase 2: Implement Flye assembly
     // if (params.use_flye) {
-    //     log.info "Running Flye long-read assembly (params.use_flye = true)"
-    //
     //     FLYE(ch_nanopore_filtered)
-    //
     //     ch_flye_assembly = FLYE.out.assembly
-    //       // Format: [meta, flye_assembly.fasta]
+    //       // Format: [meta, assembly.fasta]
     //
-    //     // Add Flye logs to MultiQC collection
     //     ch_qc_reports = ch_qc_reports
     //         .mix(FLYE.out.log)
-    //         .mix(FLYE.out.info)
     // } else {
-    //     log.info "Skipping Flye assembly (params.use_flye = false)"
+    //     ch_flye_assembly = Channel.empty()
     // }
 
     /*
@@ -373,11 +366,29 @@ workflow {
 
 /*
 ========================================================================================
-    COMPLETION HANDLERS
+    RUN MAIN WORKFLOW (DEFAULT ENTRY POINT)
 ========================================================================================
 */
 
+workflow {
+    LISTERIA_HYBRID_NF()
+}
+
+/*
+========================================================================================
+    COMPLETION HANDLERS
+========================================================================================
+    Note: These handlers only run for the main pipeline workflow (LISTERIA_HYBRID_NF)
+    The INSTALL workflow has its own completion handlers in workflows/install.nf
+*/
+
 workflow.onComplete {
+    // Only show main pipeline completion message if we're NOT running INSTALL
+    if (workflow.commandLine.contains('-entry INSTALL')) {
+        // INSTALL workflow has its own completion handlers
+        return
+    }
+
     log.info ""
     log.info "═══════════════════════════════════════════════════════════════"
 
@@ -404,7 +415,7 @@ workflow.onComplete {
         log.info "Common issues:"
         log.info "  - Missing or incorrect input files in samplesheet"
         log.info "  - Insufficient resources (check resource configurations)"
-        log.info "  - Container download failures (run workflows/install.nf first)"
+        log.info "  - Container download failures (run: nextflow run main.nf -entry INSTALL)"
         log.info "  - Invalid parameter values"
         log.info ""
         log.info "For help, see: https://github.com/yourusername/listeria-hybrid-nf/issues"
@@ -420,6 +431,12 @@ workflow.onComplete {
 }
 
 workflow.onError {
+    // Only show main pipeline error message if we're NOT running INSTALL
+    if (workflow.commandLine.contains('-entry INSTALL')) {
+        // INSTALL workflow has its own error handlers
+        return
+    }
+
     log.error ""
     log.error "═══════════════════════════════════════════════════════════════"
     log.error "Pipeline execution stopped with error:"

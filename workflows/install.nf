@@ -8,16 +8,17 @@
 
     This workflow:
     - Downloads containers from GHCR and Quay.io
-    - Caches nf-schema plugin for offline use
-    - Checks if containers already exist (resumable)
+    - Caches nf-schema plugin for offline use (from nextflow.config)
+    - Uses storeDir to skip already-downloaded containers (auto-resumable)
     - Verifies successful downloads
     - Provides progress updates
 
     Usage:
-      nextflow run workflows/install.nf
+      nextflow run main.nf -entry INSTALL -profile singularity -resume
 
       # With custom cache directory
-      nextflow run workflows/install.nf --singularity_cachedir /path/to/cache
+      nextflow run main.nf -entry INSTALL -profile singularity \\
+        --singularity_cachedir /path/to/cache
 
     Requirements:
       - Singularity/Apptainer must be installed and in PATH
@@ -27,34 +28,13 @@
     Notes:
       - This workflow should be run on a node with internet access
       - On HPC systems without internet on compute nodes, run this on a login node
-      - Downloads can be resumed if interrupted
+      - Downloads can be resumed if interrupted (-resume flag)
       - Containers are shared across all pipeline runs using the same cache directory
       - Running this workflow also caches the nf-schema plugin to ~/.nextflow/plugins/
 ========================================================================================
 */
 
 nextflow.enable.dsl=2
-
-/*
-========================================================================================
-    PLUGINS
-========================================================================================
-    Include nf-schema plugin here so it gets cached during installation
-    This allows the main pipeline to run offline on compute nodes
-*/
-
-plugins {
-    id 'nf-schema@2.0.0'
-}
-
-/*
-========================================================================================
-    PARAMETERS
-========================================================================================
-*/
-
-// Default cache directory for Singularity containers
-params.singularity_cachedir = './singularity_cache'
 
 /*
 ========================================================================================
@@ -93,60 +73,17 @@ def containers = [
 
 process DOWNLOAD_CONTAINER {
     tag "$filename"
-
-    // Publish directly to cache directory
-    publishDir params.singularity_cachedir, mode: 'copy', overwrite: false
-
+    storeDir params.singularity_cachedir
+    
     input:
     tuple val(filename), val(url)
-
+    
     output:
     path filename
-
+    
     script:
     """
-    # Check if container already exists in cache directory
-    if [ -f "${params.singularity_cachedir}/${filename}" ]; then
-        echo "✓ Container ${filename} already exists in cache, skipping download"
-
-        # Create symlink to existing file to satisfy Nextflow output requirement
-        ln -s ${params.singularity_cachedir}/${filename} ${filename}
-
-    else
-        echo "════════════════════════════════════════════════════════════"
-        echo "Downloading: ${filename}"
-        echo "Source: ${url}"
-        echo "════════════════════════════════════════════════════════════"
-
-        # Download container using singularity pull
-        singularity pull ${filename} ${url}
-
-        # Verify download succeeded and file is not empty
-        if [ ! -s ${filename} ]; then
-            echo "ERROR: Download failed or file is empty: ${filename}"
-            echo "Please check:"
-            echo "  - Internet connection"
-            echo "  - Singularity/Apptainer is properly installed"
-            echo "  - Container URL is correct: ${url}"
-            exit 1
-        fi
-
-        # Check file size is reasonable (at least 1MB)
-        file_size=\$(stat -f%z "${filename}" 2>/dev/null || stat -c%s "${filename}" 2>/dev/null)
-        if [ "\$file_size" -lt 1048576 ]; then
-            echo "WARNING: Downloaded file is very small (\${file_size} bytes)"
-            echo "This might indicate a failed download"
-        fi
-
-        echo "✓ Successfully downloaded ${filename}"
-        echo ""
-    fi
-    """
-
-    stub:
-    """
-    echo "STUB: Would download ${filename} from ${url}"
-    touch ${filename}
+    singularity pull ${filename} ${url}
     """
 }
 
@@ -156,12 +93,12 @@ process DOWNLOAD_CONTAINER {
 ========================================================================================
 */
 
-workflow {
+workflow INSTALL {
 
     /*
      * Print header with information
      */
-    println """
+    log.info """
 
     ╔═══════════════════════════════════════════════════════════════╗
     ║           Container Installation Workflow                     ║
@@ -170,6 +107,10 @@ workflow {
 
     Cache directory: ${params.singularity_cachedir}
     Containers to download: ${containers.size()}
+
+    Note: This workflow uses storeDir, so already-downloaded containers
+    will be automatically skipped. Use -resume to skip completed downloads
+    if the workflow was interrupted.
 
     """.stripIndent()
 
@@ -198,8 +139,8 @@ workflow {
      */
     DOWNLOAD_CONTAINER.out
         .collect()
-        .view { files ->
-            def summary = """
+        .subscribe { files ->
+            println """
 
             ╔═══════════════════════════════════════════════════════════════╗
             ║              Installation Complete!                           ║
@@ -214,10 +155,10 @@ workflow {
                 def sizeStr = size > 1073741824 ? "${String.format('%.2f', size / 1073741824)} GB" :
                               size > 1048576 ? "${String.format('%.2f', size / 1048576)} MB" :
                               "${String.format('%.2f', size / 1024)} KB"
-                summary += "  ✓ ${file.name.padRight(30)} (${sizeStr})\n"
+                println "  ✓ ${file.name.padRight(30)} (${sizeStr})"
             }
 
-            summary += """
+            println """
 
             Cache directory: ${params.singularity_cachedir}
 
@@ -226,8 +167,6 @@ workflow {
             2. Run the pipeline with: nextflow run main.nf -profile singularity,slurm --input samplesheet.csv
 
             """.stripIndent()
-
-            println summary
         }
 }
 
@@ -238,40 +177,40 @@ workflow {
 */
 
 workflow.onComplete {
-    println ""
-    println "═══════════════════════════════════════════════════════════════"
+    log.info ""
+    log.info "═══════════════════════════════════════════════════════════════"
 
     if (workflow.success) {
-        println "Installation workflow completed successfully!"
-        println "═══════════════════════════════════════════════════════════════"
-        println ""
-        println "All containers are now available in: ${params.singularity_cachedir}"
-        println ""
-        println "You can now run the pipeline:"
-        println "  nextflow run main.nf -profile singularity,slurm --input samplesheet.csv"
-        println ""
+        log.info "Installation workflow completed successfully!"
+        log.info "═══════════════════════════════════════════════════════════════"
+        log.info ""
+        log.info "All containers are now available in: ${params.singularity_cachedir}"
+        log.info ""
+        log.info "You can now run the pipeline:"
+        log.info "  nextflow run main.nf -profile singularity,slurm --input samplesheet.csv"
+        log.info ""
     } else {
-        println "Installation workflow failed!"
-        println "═══════════════════════════════════════════════════════════════"
-        println ""
-        println "Please check the error messages above."
-        println ""
-        println "Common issues:"
-        println "  - No internet connection"
-        println "  - Singularity/Apptainer not installed or not in PATH"
-        println "  - Insufficient disk space"
-        println "  - Container URL changed or is unavailable"
-        println ""
-        println "For help, see: https://github.com/yourusername/listeria-hybrid-nf/issues"
-        println ""
+        log.info "Installation workflow failed!"
+        log.info "═══════════════════════════════════════════════════════════════"
+        log.info ""
+        log.info "Please check the error messages above."
+        log.info ""
+        log.info "Common issues:"
+        log.info "  - No internet connection"
+        log.info "  - Singularity/Apptainer not installed or not in PATH"
+        log.info "  - Insufficient disk space"
+        log.info "  - Container URL changed or is unavailable"
+        log.info ""
+        log.info "For help, see: https://github.com/yourusername/listeria-hybrid-nf/issues"
+        log.info ""
     }
 }
 
 workflow.onError {
-    println ""
-    println "═══════════════════════════════════════════════════════════════"
-    println "Installation stopped with error:"
-    println workflow.errorMessage
-    println "═══════════════════════════════════════════════════════════════"
-    println ""
+    log.error ""
+    log.error "═══════════════════════════════════════════════════════════════"
+    log.error "Installation stopped with error:"
+    log.error workflow.errorMessage
+    log.error "═══════════════════════════════════════════════════════════════"
+    log.error ""
 }
