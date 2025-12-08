@@ -31,7 +31,7 @@ nextflow.enable.dsl=2
 */
 
 // Import the installation workflow with alias to avoid naming conflict
-include { INSTALL as INSTALL_CONTAINERS } from '${projectDir}/workflows/install'
+include { INSTALL as INSTALL_CONTAINERS } from "${projectDir}/workflows/install"
 
 /*
 ========================================================================================
@@ -40,7 +40,7 @@ include { INSTALL as INSTALL_CONTAINERS } from '${projectDir}/workflows/install'
 */
 
 // Load and validate parameters using nf-schema plugin
-include { validateParameters; paramsSummaryLog; samplesheetToList } from '${projectDir}/plugin/nf-schema'
+include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 // Print help message if requested
 if (params.help) {
