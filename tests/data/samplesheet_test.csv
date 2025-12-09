@@ -1,0 +1,2 @@
+sample,nanopore,illumina_1,illumina_2
+test_sample,tests/data/test_nanopore.fastq.gz,tests/data/test_R1.fastq.gz,tests/data/test_R2.fastq.gz
