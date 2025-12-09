@@ -95,6 +95,14 @@ nextflow run main.nf \
   -profile singularity,slurm
 ```
 
+> #### HPC Without Internet Access
+> If your HPC login/submission nodes don't have internet access, 
+> you'll need to set these environment variables:
+> ```bash
+> export NXF_OFFLINE=true
+> export NXF_DISABLE_REMOTE_LOGS=true
+> ```
+
 **On local workstation:**
 ```bash
 nextflow run main.nf \
