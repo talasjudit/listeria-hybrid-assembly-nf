@@ -1,16 +1,19 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
-    "$id": "https://raw.githubusercontent.com/yourusername/listeria-hybrid-nf/master/nextflow.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/talasjudit/listeria-hybrid-nf/main/nextflow_schema.json",
     "title": "listeria-hybrid-nf pipeline parameters",
     "description": "Hybrid bacterial genome assembly pipeline using Illumina and Nanopore sequencing data",
     "type": "object",
-    "definitions": {
+    "$defs": {
         "input_output_options": {
             "title": "Input/output options",
             "type": "object",
             "fa_icon": "fas fa-terminal",
             "description": "Define where the pipeline should find input data and save output data.",
-            "required": ["input", "outdir"],
+            "required": [
+                "input",
+                "outdir"
+            ],
             "properties": {
                 "input": {
                     "type": "string",
@@ -205,12 +208,26 @@
         }
     },
     "allOf": [
-        {"$ref": "#/definitions/input_output_options"},
-        {"$ref": "#/definitions/assembly_options"},
-        {"$ref": "#/definitions/qc_options"},
-        {"$ref": "#/definitions/resource_options"},
-        {"$ref": "#/definitions/container_options"},
-        {"$ref": "#/definitions/multiqc_options"},
-        {"$ref": "#/definitions/generic_options"}
+        {
+            "$ref": "#/$defs/input_output_options"
+        },
+        {
+            "$ref": "#/$defs/assembly_options"
+        },
+        {
+            "$ref": "#/$defs/qc_options"
+        },
+        {
+            "$ref": "#/$defs/resource_options"
+        },
+        {
+            "$ref": "#/$defs/container_options"
+        },
+        {
+            "$ref": "#/$defs/multiqc_options"
+        },
+        {
+            "$ref": "#/$defs/generic_options"
+        }
     ]
 }
