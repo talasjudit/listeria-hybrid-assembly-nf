@@ -57,6 +57,9 @@ def containers = [
     ['porechop_abi-0.5.0.sif', 'oras://ghcr.io/talasjudit/bsup-2555/porechop_abi:0.5.0-1', 'porechop_abi --version'],
     ['filtlong-0.3.0.sif', 'oras://ghcr.io/talasjudit/bsup-2555/filtlong:0.3.0-1', 'filtlong --version'],
 
+    // Coverage check
+    ['seqkit-2.12.0.sif', 'oras://ghcr.io/talasjudit/bsup-2555/seqkit:2.12.0-1', 'seqkit version'],
+
     // Assembly
     ['flye-2.9.6.sif', 'oras://ghcr.io/talasjudit/bsup-2555/flye:2.9.6-1', 'flye --version'],
     ['unicycler-0.5.1.sif', 'docker://quay.io/biocontainers/unicycler:0.5.1--py39h746d604_5', 'unicycler --version'],
