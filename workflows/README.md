@@ -18,12 +18,12 @@ This directory contains auxiliary workflows that are separate from the main pipe
 
 Basic usage:
 ```bash
-nextflow run workflows/install.nf
+nextflow run main.nf -entry INSTALL -profile singularity -c nextflow.config
 ```
 
 With custom cache directory:
 ```bash
-nextflow run workflows/install.nf --singularity_cachedir /path/to/cache
+nextflow run main.nf -entry INSTALL -profile singularity -c nextflow.config --singularity_cachedir /path/to/cache
 ```
 
 ### What It Does
