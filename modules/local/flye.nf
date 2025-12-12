@@ -4,16 +4,9 @@
 ========================================================================================
     Flye is a de novo assembler for single-molecule sequencing reads (Nanopore/PacBio)
 
-    Key features:
-    - High-quality long-read assembly
-    - Repeat resolution
-    - Can be used to scaffold Unicycler hybrid assemblies
-    - Produces assembly graph and detailed statistics
-
     Container: oras://ghcr.io/talasjudit/bsup-2555/flye:2.9.6-1
     Documentation: https://github.com/fenderglass/Flye
 
-    TODO: Implement flye command in Phase 2+
 ========================================================================================
 */
 
@@ -21,14 +14,16 @@ process FLYE {
     tag "$meta.id"
 
     container "${params.singularity_cachedir}/flye-2.9.6.sif"
+    
+    publishDir "${params.outdir}/assembly/flye", mode: 'copy'
 
     input:
     tuple val(meta), path(reads)  // reads = nanopore_filtlong.fastq.gz
 
     output:
-    tuple val(meta), path('*_flye.fasta'), emit: assembly
-    tuple val(meta), path('*/assembly_info.txt'), emit: info
-    tuple val(meta), path('*.log')       , emit: log
+    tuple val(meta), path("*_flye.fasta")     , emit: assembly
+    tuple val(meta), path("*_flye_info.txt")  , emit: info
+    tuple val(meta), path("*_flye.log")       , emit: log
     path 'versions.yml'                  , emit: versions
 
     when:
@@ -37,55 +32,25 @@ process FLYE {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-
-    // TODO Phase 2: Implement flye command
-    // Expected input:
-    //   - reads = nanopore_filtlong.fastq.gz (filtered Nanopore reads)
-    //
-    // Expected outputs:
-    //   - ${prefix}_flye.fasta (final assembly)
-    //   - ${prefix}_flye/assembly_info.txt (contig information)
-    //   - ${prefix}_flye.log (assembly log)
-    //
-    // Key parameters to include:
-    //   --nano-hq : High-quality Nanopore reads (Q20+)
-    //     Alternative: --nano-raw for older/lower quality Nanopore data
-    //   --out-dir ${prefix}_flye : Output directory
-    //   --threads ${task.cpus} : Use allocated CPUs
-    //   --genome-size ${params.genome_size} : Expected genome size (e.g., '3m')
-    //   ${args} : Additional user-specified arguments
-    //
-    // Additional options to consider:
-    //   --iterations 2 : Number of polishing iterations (default: 1)
-    //   --min-overlap : Minimum overlap between reads
-    //   --meta : Enable metagenomic mode (if applicable)
-    //
-    // Post-processing:
-    //   Copy assembly.fasta to ${prefix}_flye.fasta for standardized naming
-    //   Flye creates output directory with multiple files
-    //
-    // Log capture:
-    //   Redirect stdout/stderr to ${prefix}_flye.log
+    def genome_size_arg = params.genome_size ? "--genome-size ${params.genome_size}" : ""
 
     """
-    # TODO: Implement flye command here
+    flye \\
+        --nano-hq ${reads} \\
+        --out-dir out_dir \\
+        --threads ${task.cpus} \\
+        ${genome_size_arg} \\
+        ${args}
 
-    echo "TODO: Run flye on ${reads}"
-    echo "TODO: Use genome size: ${params.genome_size}"
-    echo "TODO: Output assembly to ${prefix}_flye directory"
-    echo "TODO: Copy final assembly to ${prefix}_flye.fasta"
-    echo "TODO: Save log to ${prefix}_flye.log"
-
-    # Placeholder commands - remove this in Phase 2
-    mkdir -p ${prefix}_flye
-    touch ${prefix}_flye.fasta
-    touch ${prefix}_flye/assembly_info.txt
-    touch ${prefix}_flye.log
-
-    # Version capture - TODO: Update with actual flye version command
+    # Rename and move outputs to standardize naming
+    mv out_dir/assembly.fasta ${prefix}_flye.fasta
+    mv out_dir/assembly_info.txt ${prefix}_flye_info.txt
+    mv out_dir/flye.log ${prefix}_flye.log
+    
+    # Capture version
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        flye: \$(flye --version 2>&1 | sed 's/Flye //g' || echo "version_unavailable")
+        flye: \$(flye --version 2>&1 | sed 's/Flye //g')
     END_VERSIONS
     """
 
