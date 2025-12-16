@@ -4,12 +4,6 @@
 ========================================================================================
     CheckM2 predicts the completeness and contamination of genome assemblies
 
-    Key features:
-    - Rapid quality assessment using machine learning
-    - Completeness and contamination estimates
-    - Works with bacterial and archaeal genomes
-    - Database included in container
-
     Container: oras://ghcr.io/talasjudit/bsup-2555/checkm2:1.1.0-1
     Documentation: https://github.com/chklovski/CheckM2
 
@@ -21,12 +15,13 @@ process CHECKM2 {
     tag "$meta.id"
 
     container "${params.singularity_cachedir}/checkm2-1.1.0.sif"
+    publishDir "${params.outdir}/qc/checkm2", mode: 'copy'
 
     input:
     tuple val(meta), path(assembly)  // assembly = unicycler.fasta
 
     output:
-    tuple val(meta), path('*/quality_report.tsv'), emit: report
+    tuple val(meta), path('*_checkm2_summary.tsv'), emit: report
     tuple val(meta), path('*.log')                , emit: log
     path 'versions.yml'                           , emit: versions
 
@@ -37,59 +32,31 @@ process CHECKM2 {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
 
-    // TODO Phase 2: Implement checkm2 command
-    // Expected input:
-    //   - assembly = unicycler.fasta (genome assembly to assess)
-    //
-    // Expected outputs:
-    //   - ${prefix}_checkm2/quality_report.tsv (completeness and contamination metrics)
-    //   - ${prefix}_checkm2.log (log file)
-    //
-    // Key parameters to include:
-    //   predict : CheckM2 subcommand for quality prediction
-    //   --threads ${task.cpus} : Use allocated CPUs
-    //   --input ${assembly} : Input assembly file
-    //   --output-directory ${prefix}_checkm2 : Output directory
-    //   ${args} : Additional user-specified arguments
-    //
-    // Additional options to consider:
-    //   --force : Overwrite existing output
-    //   --quiet : Reduce output verbosity
-    //   --database_path : Custom database path (default uses container database)
-    //
-    // Note: CheckM2 database is pre-downloaded and included in the container
-    //       Database location is typically /databases/checkm2/ or similar
-    //       The container should have CHECKM2DB environment variable set
-    //
-    // Output file structure:
-    //   ${prefix}_checkm2/quality_report.tsv contains:
-    //   - Completeness (%)
-    //   - Contamination (%)
-    //   - Genome size
-    //   - GC content
-    //   - Coding density
-    //   - Other QC metrics
-    //
-    // Log capture:
-    //   Redirect stdout/stderr to ${prefix}_checkm2.log
-
     """
-    # TODO: Implement checkm2 command here
+    # Create temp directory for input (CheckM2 needs directory input)
+    mkdir -p tmp_input
+    cp ${assembly} tmp_input/${prefix}.fasta
 
-    echo "TODO: Run checkm2 on ${assembly}"
-    echo "TODO: Assess completeness and contamination"
-    echo "TODO: Output report to ${prefix}_checkm2/quality_report.tsv"
-    echo "TODO: Save log to ${prefix}_checkm2.log"
+    checkm2 predict \\
+        --threads ${task.cpus} \\
+        --input tmp_input \\
+        --output-directory ${prefix}_checkm2 \\
+        --extension fasta \\
+        --force \\
+        ${args}
 
-    # Placeholder commands - remove this in Phase 2
-    mkdir -p ${prefix}_checkm2
-    touch ${prefix}_checkm2/quality_report.tsv
-    touch ${prefix}_checkm2.log
+    # Format output summary (mimicking SLURM script logic)
+    # Add sample name to the report
+    echo -e "sample\\t\$(head -n1 ${prefix}_checkm2/quality_report.tsv)" > ${prefix}_checkm2_summary.tsv
+    tail -n+2 ${prefix}_checkm2/quality_report.tsv | \\
+        sed "s/^/${prefix}\\t/" >> ${prefix}_checkm2_summary.tsv
 
-    # Version capture - TODO: Update with actual checkm2 version command
+    mv ${prefix}_checkm2/checkm2.log ${prefix}_checkm2.log
+    
+    # Capture version
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        checkm2: \$(checkm2 --version 2>&1 | sed 's/checkm2: version //g' || echo "version_unavailable")
+        checkm2: \$(checkm2 --version 2>&1 | sed 's/checkm2: version //g')
     END_VERSIONS
     """
 
@@ -97,7 +64,7 @@ process CHECKM2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     mkdir -p ${prefix}_checkm2
-    touch ${prefix}_checkm2/quality_report.tsv
+    touch ${prefix}_checkm2_summary.tsv
     touch ${prefix}_checkm2.log
     touch versions.yml
     """

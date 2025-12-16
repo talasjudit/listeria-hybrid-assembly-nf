@@ -4,12 +4,6 @@
 ========================================================================================
     QUAST evaluates genome assemblies and produces comprehensive statistics
 
-    Key features:
-    - Extensive assembly statistics (N50, L50, contig counts, etc.)
-    - HTML and TSV reports
-    - Can compare multiple assemblies
-    - No reference genome needed for basic statistics
-
     Container: oras://ghcr.io/talasjudit/bsup-2555/quast:5.3.0-1
     Documentation: https://github.com/ablab/quast
 
@@ -21,15 +15,16 @@ process QUAST {
     tag "$meta.id"
 
     container "${params.singularity_cachedir}/quast-5.3.0.sif"
+    publishDir "${params.outdir}/qc/quast", mode: 'copy'
 
     input:
     tuple val(meta), path(assembly)  // assembly = unicycler.fasta
 
     output:
-    tuple val(meta), path('*/report.tsv'), emit: report
-    tuple val(meta), path('*/report.html'), emit: html
-    tuple val(meta), path('*.log')        , emit: log
-    path 'versions.yml'                   , emit: versions
+    tuple val(meta), path('*_quast_summary.tsv'), emit: report
+    tuple val(meta), path('*/report.html')      , emit: html
+    tuple val(meta), path('*.log')              , emit: log
+    path 'versions.yml'                         , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -38,69 +33,26 @@ process QUAST {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
 
-    // TODO Phase 2: Implement quast command
-    // Expected input:
-    //   - assembly = unicycler.fasta (genome assembly to assess)
-    //
-    // Expected outputs:
-    //   - ${prefix}_quast/report.tsv (assembly statistics in TSV format)
-    //   - ${prefix}_quast/report.html (interactive HTML report)
-    //   - ${prefix}_quast.log (log file)
-    //
-    // Key parameters to include:
-    //   ${assembly} : Input assembly file
-    //   --output-dir ${prefix}_quast : Output directory
-    //   --threads ${task.cpus} : Use allocated CPUs
-    //   --min-contig 500 : Minimum contig length to consider
-    //   ${args} : Additional user-specified arguments
-    //
-    // Additional options to consider:
-    //   --fast : Faster mode (skip some analyses)
-    //   --no-plots : Don't generate plots (faster)
-    //   --circos : Generate Circos plots (requires reference)
-    //   --glimmer : Gene prediction with GlimmerHMM
-    //   --scaffolds : Assembly is scaffolds (vs contigs)
-    //
-    // For reference-based analysis (optional):
-    //   --reference ref.fasta : Compare against reference genome
-    //   --features ref.gff : Use reference annotations
-    //
-    // Output files include:
-    //   - report.tsv : Tab-separated metrics
-    //   - report.html : Interactive HTML report
-    //   - transposed_report.tsv : Alternative format
-    //   - icarus.html : Contig browser
-    //
-    // Key metrics reported:
-    //   - Number of contigs
-    //   - Total length
-    //   - N50, N75, L50, L75
-    //   - Largest contig
-    //   - GC content
-    //   - N's per 100 kbp
-    //
-    // Log capture:
-    //   Redirect stdout/stderr to ${prefix}_quast.log
-
     """
-    # TODO: Implement quast command here
+    quast.py \\
+        ${assembly} \\
+        --output-dir ${prefix}_quast \\
+        --threads ${task.cpus} \\
+        --min-contig 500 \\
+        ${args}
 
-    echo "TODO: Run quast on ${assembly}"
-    echo "TODO: Generate assembly statistics"
-    echo "TODO: Output TSV report to ${prefix}_quast/report.tsv"
-    echo "TODO: Output HTML report to ${prefix}_quast/report.html"
-    echo "TODO: Save log to ${prefix}_quast.log"
+    # Format output summary (mimicking SLURM script logic)
+    # Create a simplified summary with sample name
+    echo -e "sample\\t\$(head -n1 ${prefix}_quast/transposed_report.tsv | cut -f2-)" > ${prefix}_quast_summary.tsv
+    tail -n+2 ${prefix}_quast/transposed_report.tsv | \\
+        sed "s/^/${prefix}\\t/" >> ${prefix}_quast_summary.tsv
 
-    # Placeholder commands - remove this in Phase 2
-    mkdir -p ${prefix}_quast
-    touch ${prefix}_quast/report.tsv
-    touch ${prefix}_quast/report.html
-    touch ${prefix}_quast.log
+    mv ${prefix}_quast/quast.log ${prefix}_quast.log
 
-    # Version capture - TODO: Update with actual quast version command
+    # Capture version
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        quast: \$(quast.py --version 2>&1 | sed 's/QUAST v//g' || echo "version_unavailable")
+        quast: \$(quast.py --version 2>&1 | sed 's/QUAST v//g')
     END_VERSIONS
     """
 
@@ -108,7 +60,7 @@ process QUAST {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     mkdir -p ${prefix}_quast
-    touch ${prefix}_quast/report.tsv
+    touch ${prefix}_quast_summary.tsv
     touch ${prefix}_quast/report.html
     touch ${prefix}_quast.log
     touch versions.yml
