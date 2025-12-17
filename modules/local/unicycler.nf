@@ -9,7 +9,6 @@
     Container: oras://ghcr.io/talasjudit/bsup-2555/unicycler:0.5.1-1
     Documentation: https://github.com/rrwick/Unicycler
 
-    TODO: Implement unicycler command in Phase 2+
 ========================================================================================
 */
 
@@ -27,7 +26,7 @@ process UNICYCLER {
     output:
     tuple val(meta), path('*_unicycler.fasta')    , emit: assembly
     tuple val(meta), path('*_unicycler_graph.gfa'), emit: gfa
-    tuple val(meta), path('*.log')                , emit: log
+    tuple val(meta), path('*.log')                , emit: process_log
     path 'versions.yml'                       , emit: versions
 
     when:

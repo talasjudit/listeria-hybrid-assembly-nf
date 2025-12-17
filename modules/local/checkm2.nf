@@ -7,7 +7,6 @@
     Container: oras://ghcr.io/talasjudit/bsup-2555/checkm2:1.1.0-1
     Documentation: https://github.com/chklovski/CheckM2
 
-    TODO: Implement checkm2 command in Phase 2+
 ========================================================================================
 */
 

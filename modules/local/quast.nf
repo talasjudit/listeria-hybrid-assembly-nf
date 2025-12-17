@@ -7,7 +7,6 @@
     Container: oras://ghcr.io/talasjudit/bsup-2555/quast:5.3.0-1
     Documentation: https://github.com/ablab/quast
 
-    TODO: Implement quast command in Phase 2+
 ========================================================================================
 */
 
@@ -22,7 +21,9 @@ process QUAST {
 
     output:
     tuple val(meta), path('*_quast_summary.tsv'), emit: report
+    tuple val(meta), path('*_quast')            , emit: dir
     tuple val(meta), path('*/report.html')      , emit: html
+    tuple val(meta), path('*/icarus.html')      , emit: icarus
     tuple val(meta), path('*.log')              , emit: log
     path 'versions.yml'                         , emit: versions
 
@@ -62,6 +63,7 @@ process QUAST {
     mkdir -p ${prefix}_quast
     touch ${prefix}_quast_summary.tsv
     touch ${prefix}_quast/report.html
+    touch ${prefix}_quast/icarus.html
     touch ${prefix}_quast.log
     touch versions.yml
     """

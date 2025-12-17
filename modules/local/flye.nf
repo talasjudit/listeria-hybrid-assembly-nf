@@ -23,7 +23,7 @@ process FLYE {
     output:
     tuple val(meta), path("*_flye.fasta")     , emit: assembly
     tuple val(meta), path("*_flye_info.txt")  , emit: info
-    tuple val(meta), path("*_flye.log")       , emit: log
+    tuple val(meta), path("*_flye.log")       , emit: process_log
     path 'versions.yml'                  , emit: versions
 
     when:
