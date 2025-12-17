@@ -3,28 +3,21 @@
     INPUT_CHECK Subworkflow
 ========================================================================================
     Parse and validate samplesheet using nf-schema plugin
-
+    
     Purpose:
     - Parse samplesheet CSV file
     - Validate format and file existence (handled by nf-schema)
     - Create separate channels for Illumina and Nanopore reads
     - Add metadata to samples
 
-    Why this is a subworkflow:
-    - Complex parsing and channel manipulation logic
-    - Reusable across different entry points
-    - Centralizes input validation
-
     Dependencies:
-    - nf-schema plugin
+    - nf-schema plugin (v2.0+)
     - assets/schema_input.json (validation schema)
-
-    TODO: Implement samplesheet parsing in Phase 2+
 ========================================================================================
 */
 
-// Import nf-schema plugin functions
-include { fromSamplesheet } from 'plugin/nf-schema'
+// Import nf-schema plugin function
+include { samplesheetToList } from 'plugin/nf-schema'
 
 workflow INPUT_CHECK {
 
@@ -32,54 +25,29 @@ workflow INPUT_CHECK {
     samplesheet  // path: Path to CSV samplesheet file
 
     main:
+    // Parse samplesheet using nf-schema 2.0 syntax
+    // samplesheetToList returns a Groovy list, convert to channel with Channel.fromList()
+    ch_input = Channel.fromList(samplesheetToList(params.input, "${launchDir}/assets/schema_input.json"))
+        .map { row ->
+            def meta = [id: row[0], single_end: false]
+            // Schema order: sample, nanopore, illumina_1, illumina_2
+            // row[0] = sample
+            // row[1] = nanopore
+            // row[2] = illumina_1
+            // row[3] = illumina_2
+            [meta, [file(row[2]), file(row[3])], file(row[1])]
+        }
 
-    // TODO Phase 2: Implement samplesheet parsing
-    //
-    // The nf-schema plugin will:
-    // 1. Parse the CSV file
-    // 2. Validate against assets/schema_input.json
-    // 3. Check that all files exist
-    // 4. Ensure sample names are unique
-    // 5. Create a channel with the data
-    //
-    // Example implementation:
-    //
-    // // Parse samplesheet using nf-schema
-    // ch_input = Channel.fromSamplesheet('input')
-    //     .map { meta, nanopore, illumina_1, illumina_2 ->
-    //         // Create new metadata map
-    //         def new_meta = [
-    //             id: meta.sample,
-    //             single_end: false  // Paired-end Illumina data
-    //         ]
-    //
-    //         // Return tuple with metadata and file paths
-    //         // Format: [meta, [illumina_R1, illumina_R2], nanopore]
-    //         return [new_meta, [file(illumina_1), file(illumina_2)], file(nanopore)]
-    //     }
-    //
-    // // Split into separate channels for different read types
-    // ch_illumina = ch_input
-    //     .map { meta, illumina, nanopore ->
-    //         // Return: [meta, [R1, R2]]
-    //         [meta, illumina]
-    //     }
-    //
-    // ch_nanopore = ch_input
-    //     .map { meta, illumina, nanopore ->
-    //         // Return: [meta, nanopore]
-    //         [meta, nanopore]
-    //     }
-    //
-    // Notes:
-    // - The 'input' parameter name must match the parameter in nextflow.config
-    // - File existence is validated automatically by the schema
-    // - Sample names are validated for uniqueness
-    // - All validation errors will stop the pipeline with clear messages
+    // Split into separate channels for different read types
+    ch_illumina = ch_input
+        .map { meta, illumina, nanopore ->
+            [meta, illumina]
+        }
 
-    // Placeholder channels for Phase 1
-    ch_illumina = Channel.empty()
-    ch_nanopore = Channel.empty()
+    ch_nanopore = ch_input
+        .map { meta, illumina, nanopore ->
+            [meta, nanopore]
+        }
 
     emit:
     illumina = ch_illumina  // channel: tuple val(meta), path(reads) where reads = [R1, R2]

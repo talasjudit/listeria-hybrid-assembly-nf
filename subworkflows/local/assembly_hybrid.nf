@@ -2,114 +2,46 @@
 ========================================================================================
     ASSEMBLY_HYBRID Subworkflow
 ========================================================================================
-    Hybrid genome assembly with conditional logic for Flye integration
+    Hybrid genome assembly using Unicycler with optional Flye assembly input
+    
+    - Standard mode: Unicycler with short + long reads
+    - Flye mode: Unicycler uses existing Flye assembly as scaffold
 
-    Purpose:
-    - Handles complex decision between two Unicycler assembly modes
-    - Standard hybrid: Unicycler with short + long reads
-    - With Flye: Unicycler using existing Flye assembly as scaffold
-    - Hides conditional complexity from main workflow
-
-    Why this is a subworkflow:
-    - Complex conditional logic based on params.use_flye
-    - Two different processes with similar inputs/outputs
-    - Centralizes assembly strategy decision
-    - Keeps main.nf clean and readable
-
-    Processes (conditionally executed):
-    - UNICYCLER: Standard hybrid assembly (short + long reads)
-    - UNICYCLER_WITH_FLYE: Hybrid with existing Flye assembly
-
-    TODO: Implement conditional assembly logic in Phase 2+
+    Processes:
+    - UNICYCLER: Hybrid assembly (handles both modes via optional assembly input)
 ========================================================================================
 */
 
-// Import both Unicycler processes
+// Import Unicycler process (handles optional Flye assembly)
 include { UNICYCLER } from '../../modules/local/unicycler'
-include { UNICYCLER_WITH_FLYE } from '../../modules/local/unicycler_with_flye'
 
 workflow ASSEMBLY_HYBRID {
 
     take:
     illumina_reads  // channel: tuple val(meta), path(reads) - [R1, R2]
     nanopore_reads  // channel: tuple val(meta), path(reads) - nanopore reads
-    flye_assembly   // channel: tuple val(meta), path(assembly) - Flye assembly (optional/empty)
+    flye_assembly   // channel: tuple val(meta), path(assembly) - Flye assembly (or empty channel)
 
     main:
-
-    // TODO Phase 2: Implement conditional assembly logic
-    //
-    // This subworkflow decides which Unicycler mode to use based on:
-    // - params.use_flye flag
-    // - Presence of Flye assembly in the channel
-    //
-    // Example implementation:
-    //
-    // // Combine Illumina and Nanopore channels by sample ID
-    // ch_reads_combined = illumina_reads
-    //     .join(nanopore_reads, by: 0)
-    //     // Result: [meta, [R1, R2], nanopore]
-    //
-    // // Conditional execution based on params.use_flye
-    // if (params.use_flye) {
-    //     // Mode 1: Hybrid assembly WITH existing Flye assembly
-    //
-    //     // Join reads with Flye assembly
-    //     ch_with_flye = ch_reads_combined
-    //         .join(flye_assembly, by: 0)
-    //         // Result: [meta, [R1, R2], nanopore, flye_assembly]
-    //
-    //     // Run Unicycler with existing assembly
-    //     UNICYCLER_WITH_FLYE(ch_with_flye)
-    //
-    //     // Collect outputs
-    //     ch_assembly = UNICYCLER_WITH_FLYE.out.assembly
-    //     ch_gfa = UNICYCLER_WITH_FLYE.out.gfa
-    //     ch_log = UNICYCLER_WITH_FLYE.out.log
-    //     ch_versions = UNICYCLER_WITH_FLYE.out.versions
-    //
-    // } else {
-    //     // Mode 2: Standard hybrid assembly (no Flye)
-    //
-    //     // Run standard Unicycler
-    //     UNICYCLER(ch_reads_combined)
-    //
-    //     // Collect outputs
-    //     ch_assembly = UNICYCLER.out.assembly
-    //     ch_gfa = UNICYCLER.out.gfa
-    //     ch_log = UNICYCLER.out.log
-    //     ch_versions = UNICYCLER.out.versions
-    // }
-    //
-    // Alternative implementation using branching:
-    // This approach is more DSL2-idiomatic but more complex
-    //
-    // ch_reads_combined
-    //     .branch {
-    //         with_flye: params.use_flye
-    //         standard: !params.use_flye
-    //     }
-    //     .set { ch_branched }
-    //
-    // Then handle each branch separately
-    //
-    // Notes:
-    // - The join operation matches samples by meta.id
-    // - Both processes produce identical output structure
-    // - Choice is made at workflow start, not per-sample
-    // - All samples use the same assembly mode
-
-    // Placeholder channels for Phase 1
-    ch_assembly = Channel.empty()
-    ch_gfa = Channel.empty()
-    ch_log = Channel.empty()
-    ch_versions = Channel.empty()
+    // Combine all inputs by sample ID
+    // Result: [meta, [R1, R2], nanopore, assembly_or_empty]
+    ch_unicycler_input = illumina_reads
+        .join(nanopore_reads, by: 0)
+        .join(flye_assembly, by: 0, remainder: true)
+        .map { meta, illumina, nanopore, assembly ->
+            // If no Flye assembly, use empty list
+            def asm = assembly ?: []
+            [meta, illumina, nanopore, asm]
+        }
+    
+    // Run Unicycler (handles both modes via optional assembly parameter)
+    UNICYCLER(ch_unicycler_input)
 
     emit:
-    assembly = ch_assembly  // channel: tuple val(meta), path(assembly) - final assembly FASTA
-    gfa      = ch_gfa       // channel: tuple val(meta), path(gfa) - assembly graph
-    log      = ch_log       // channel: tuple val(meta), path(log) - assembly log
-    versions = ch_versions  // channel: path(versions.yml) - version info
+    assembly = UNICYCLER.out.assembly  // channel: tuple val(meta), path(assembly) - final assembly FASTA
+    gfa      = UNICYCLER.out.gfa       // channel: tuple val(meta), path(gfa) - assembly graph
+    logs     = UNICYCLER.out.process_log // channel: tuple val(meta), path(log) - assembly log
+    versions = UNICYCLER.out.versions  // channel: path(versions.yml) - version info
 }
 
 /*
