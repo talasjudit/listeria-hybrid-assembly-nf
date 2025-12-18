@@ -116,7 +116,7 @@ nextflow run main.nf \
 For documentation, see the **[Wiki](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki)**:
 
 - [Installation](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/2.-Installation)
-- [UConfiguration](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/3.-Configuration)
+- [Configuration](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/3.-Configuration)
 - [Pipeline Steps](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/4.-Pipeline-Steps)
 - [Output Structure](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/5.-Output)
 
