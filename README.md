@@ -95,8 +95,8 @@ flowchart LR
 
 ```bash
 # Clone repository
-git clone https://github.com/talasjudit/listeria-hybrid-nf.git
-cd listeria-hybrid-nf
+git clone https://github.com/listeria-hybrid-assembly-nf.git
+cd listeria-hybrid-assembly-nf
 
 # Download containers (run on node with internet access)
 nextflow run main.nf -entry INSTALL -profile singularity
