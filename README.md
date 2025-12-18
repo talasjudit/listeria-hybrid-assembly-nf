@@ -95,7 +95,7 @@ flowchart LR
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/listeria-hybrid-nf.git
+git clone https://github.com/talasjudit/listeria-hybrid-nf.git
 cd listeria-hybrid-nf
 
 # Download containers (run on node with internet access)
