@@ -99,7 +99,7 @@ git clone https://github.com/listeria-hybrid-assembly-nf.git
 cd listeria-hybrid-assembly-nf
 
 # Download containers (run on node with internet access)
-nextflow run main.nf -entry INSTALL -profile singularity
+nextflow run main.nf -entry INSTALL
 
 # If running on a node with no internet access, set this environment variables before running the pipeline
 export NXF_OFFLINE=true
