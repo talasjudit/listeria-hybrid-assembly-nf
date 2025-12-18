@@ -12,6 +12,8 @@
 process FASTP {
     tag "$meta.id"
 
+    publishDir "${params.outdir}/qc/fastp", mode: 'copy', pattern: "*.{json,html}"
+
     container "${params.singularity_cachedir}/fastp-1.0.1.sif"
 
     input:
