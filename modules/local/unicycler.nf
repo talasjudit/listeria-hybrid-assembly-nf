@@ -1,14 +1,12 @@
 /*
 ========================================================================================
-    UNICYCLER - Standard Hybrid Assembly
+    UNICYCLER - Hybrid Assembly
 ========================================================================================
-    Unicycler assembles bacterial genomes using both short and long reads
+    Unicycler assembles bacterial genomes using both short and long reads.
+    Supports optional existing assembly (e.g., from Flye) via the assembly input.
 
-    For hybrid assembly WITH an existing Flye assembly, see: unicycler_with_flye.nf
-
-    Container: oras://ghcr.io/talasjudit/bsup-2555/unicycler:0.5.1-1
+    Container: docker://quay.io/biocontainers/unicycler:0.5.1--py39h746d604_5
     Documentation: https://github.com/rrwick/Unicycler
-
 ========================================================================================
 */
 

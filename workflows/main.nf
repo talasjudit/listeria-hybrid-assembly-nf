@@ -35,9 +35,10 @@ include { QC_ASSEMBLY     } from '../subworkflows/local/qc_assembly'
 ========================================================================================
 */
 
-include { FASTP   } from '../modules/local/fastp'
-include { FLYE    } from '../modules/local/flye'
-include { MULTIQC } from '../modules/local/multiqc'
+include { FASTP           } from '../modules/local/fastp'
+include { FLYE            } from '../modules/local/flye'
+include { MULTIQC         } from '../modules/local/multiqc'
+include { COVERAGE_CHECK  } from '../modules/local/coverage_check'
 
 /*
 ========================================================================================
@@ -91,11 +92,41 @@ workflow HYBRID_ASSEMBLY {
     ch_nanopore_filtered = QC_NANOPORE.out.reads  // channel: [meta, filtered.fastq.gz]
     
     //
+    // MODULE: Coverage check (validation gate)
+    // Combines QC'd reads and checks if coverage meets thresholds
+    //
+    ch_coverage_input = ch_illumina_trimmed
+        .join(ch_nanopore_filtered, by: 0)
+        .map { meta, illumina, nanopore -> [meta, illumina, nanopore] }
+    
+    COVERAGE_CHECK(ch_coverage_input)
+    
+    // Branch samples into passed and failed based on coverage report
+    ch_coverage_branched = COVERAGE_CHECK.out.results
+        .branch { meta, illumina, nanopore, report ->
+            passed: report.text.contains("Status: PASSED")
+            failed: report.text.contains("Status: FAILED")
+        }
+    
+    // Log failed samples
+    ch_coverage_branched.failed
+        .subscribe { meta, illumina, nanopore, report ->
+            log.warn "Sample ${meta.id} FAILED coverage check - see ${report.name} for details"
+        }
+    
+    // Extract passing samples for assembly (drop the report from tuple)
+    ch_illumina_passed = ch_coverage_branched.passed
+        .map { meta, illumina, nanopore, report -> [meta, illumina] }
+    
+    ch_nanopore_passed = ch_coverage_branched.passed
+        .map { meta, illumina, nanopore, report -> [meta, nanopore] }
+    
+    //
     // CONDITIONAL: Flye long-read assembly (if params.use_flye = true)
     //
     if (params.use_flye) {
         log.info "Running Flye assembly before Unicycler..."
-        FLYE(ch_nanopore_filtered)
+        FLYE(ch_nanopore_passed)
         ch_flye_assembly = FLYE.out.assembly  // channel: [meta, assembly.fasta]
     } else {
         log.info "Skipping Flye - running standard Unicycler hybrid assembly"
@@ -104,10 +135,11 @@ workflow HYBRID_ASSEMBLY {
     
     //
     // SUBWORKFLOW: Hybrid assembly (with or without Flye)
+    // Only processes samples that passed coverage check
     //
     ASSEMBLY_HYBRID(
-        ch_illumina_trimmed,
-        ch_nanopore_filtered,
+        ch_illumina_passed,
+        ch_nanopore_passed,
         ch_flye_assembly
     )
     
@@ -128,6 +160,7 @@ workflow HYBRID_ASSEMBLY {
         .mix(FASTP.out.json.map { meta, json -> json })
         .mix(FASTP.out.html.map { meta, html -> html })
         .mix(QC_NANOPORE.out.logs.map { meta, log -> log }.flatten())
+        .mix(COVERAGE_CHECK.out.results.map { meta, illumina, nanopore, report -> report })
         .mix(ASSEMBLY_HYBRID.out.logs.map { meta, log -> log })
         .mix(QC_ASSEMBLY.out.logs.map { meta, log -> log }.flatten())
         .mix(QC_ASSEMBLY.out.checkm2_reports.map { meta, report -> report })

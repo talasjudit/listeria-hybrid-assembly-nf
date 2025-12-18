@@ -63,7 +63,7 @@ cd listeria-hybrid-nf
 
 ```bash
 # Download all required Singularity containers
-nextflow run workflows/install.nf --singularity_cachedir ./singularity_cache
+nextflow run main.nf -entry INSTALL -profile singularity
 
 # This downloads ~5-10 GB of containers
 # Run on a node with internet access
@@ -387,7 +387,7 @@ See issues page for current development priorities.
 
 ## License
 
-TODO: Add license information
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
@@ -397,6 +397,7 @@ For questions, issues, or suggestions:
 
 ## Acknowledgments
 
+- Pipeline development assisted by AI pair programming
 - Container images hosted on GitHub Container Registry
 - Pipeline structure inspired by nf-core best practices
 - Developed for bacterial genomics research

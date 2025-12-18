@@ -15,13 +15,17 @@ tests/
 │   ├── filtlong/
 │   ├── flye/
 │   ├── unicycler/
-│   ├── unicycler_with_flye/
 │   ├── checkm2/
 │   ├── quast/
-│   └── multiqc/
+│   └── coverage_check/
+├── subworkflows/           # Subworkflow tests
+│   ├── assembly_hybrid/
+│   ├── input_check/
+│   ├── qc_assembly/
+│   └── qc_nanopore/
 ├── integration/            # Full pipeline integration tests
 │   └── test_full_pipeline.nf
-└── data/                   # Test data (to be added)
+└── data/                   # Test data
     ├── samplesheet_test.csv
     └── README.md
 ```
