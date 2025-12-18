@@ -1,0 +1,2 @@
+sample,nanopore,illumina_1,illumina_2
+test_sample,/qib/research-groups/CoreBioInfo/personal/Judit-Talas/listeria-hybrid-assembly-nf/tests/data/test_nanopore.fastq.gz,/qib/research-groups/CoreBioInfo/personal/Judit-Talas/listeria-hybrid-assembly-nf/tests/data/test_R1.fastq.gz,/qib/research-groups/CoreBioInfo/personal/Judit-Talas/listeria-hybrid-assembly-nf/tests/data/test_R2.fastq.gz

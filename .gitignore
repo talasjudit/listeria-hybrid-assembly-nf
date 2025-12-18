@@ -11,6 +11,9 @@ singularity_cache/
 # Testing
 tests/work/
 tests/.nextflow*
+tests/results/
+tests/data/*.fastq.gz
+tests/data/*.fq.gz
 
 # Python
 __pycache__/

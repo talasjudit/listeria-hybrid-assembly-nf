@@ -1,0 +1,50 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/talasjudit/listeria-hybrid-nf/master/assets/schema_input.json",
+    "title": "listeria-hybrid-nf pipeline - params.input schema",
+    "description": "Schema for validating the input samplesheet provided with params.input",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "sample": {
+                "type": "string",
+                "pattern": "^[^\\s]+$",
+                "errorMessage": "Sample name must be provided and cannot contain spaces.",
+                "description": "Unique sample identifier"
+            },
+            "nanopore": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                "errorMessage": "Nanopore FastQ file must have extension '.fq.gz' or '.fastq.gz' and exist.",
+                "description": "Path to Nanopore long-read FastQ file (gzipped)"
+            },
+            "illumina_1": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                "errorMessage": "Illumina R1 FastQ file must have extension '.fq.gz' or '.fastq.gz' and exist.",
+                "description": "Path to Illumina forward (R1) read FastQ file (gzipped)"
+            },
+            "illumina_2": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                "errorMessage": "Illumina R2 FastQ file must have extension '.fq.gz' or '.fastq.gz' and exist.",
+                "description": "Path to Illumina reverse (R2) read FastQ file (gzipped)"
+            }
+        },
+        "required": [
+            "sample",
+            "nanopore",
+            "illumina_1",
+            "illumina_2"
+        ]
+    },
+    "minItems": 1,
+    "uniqueItems": true
+}

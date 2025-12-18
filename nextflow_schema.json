@@ -1,0 +1,233 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/talasjudit/listeria-hybrid-nf/main/nextflow_schema.json",
+    "title": "listeria-hybrid-nf pipeline parameters",
+    "description": "Hybrid bacterial genome assembly pipeline using Illumina and Nanopore sequencing data",
+    "type": "object",
+    "$defs": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": [
+                "input",
+                "outdir"
+            ],
+            "properties": {
+                "input": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to comma-separated file containing information about the samples",
+                    "help_text": "Use this to specify the location of your input samplesheet. The samplesheet must have the columns: sample, nanopore, illumina_1, illumina_2. All samples must have BOTH Illumina and Nanopore data (hybrid assembly only).",
+                    "fa_icon": "fas fa-file-csv"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
+                    "default": "results",
+                    "fa_icon": "fas fa-folder-open"
+                },
+                "tracedir": {
+                    "type": "string",
+                    "description": "Directory to keep pipeline Nextflow logs and reports.",
+                    "default": "${params.outdir}/pipeline_info",
+                    "fa_icon": "fas fa-cogs",
+                    "hidden": true
+                }
+            }
+        },
+        "assembly_options": {
+            "title": "Assembly options",
+            "type": "object",
+            "description": "Options for assembly strategy and parameters",
+            "fa_icon": "fas fa-dna",
+            "properties": {
+                "use_flye": {
+                    "type": "boolean",
+                    "description": "Run Flye long-read assembly before Unicycler (enables hybrid assembly with existing assembly mode)",
+                    "default": false,
+                    "help_text": "When enabled, Flye will first create a long-read-only assembly, which is then used as a scaffold for Unicycler's hybrid assembly. This can improve assembly quality for complex genomes.",
+                    "fa_icon": "fas fa-project-diagram"
+                },
+                "genome_size": {
+                    "type": "string",
+                    "description": "Expected genome size for Flye assembly (e.g., '3m' for 3 megabases)",
+                    "default": "3m",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?[kmg]?$",
+                    "help_text": "Approximate genome size used by Flye. Use suffixes: k (kilobases), m (megabases), g (gigabases). Example: '3m' for a 3 Mb bacterial genome.",
+                    "fa_icon": "fas fa-ruler"
+                }
+            }
+        },
+        "qc_options": {
+            "title": "QC options",
+            "type": "object",
+            "description": "Quality control thresholds and parameters",
+            "fa_icon": "fas fa-check-circle",
+            "properties": {
+                "min_coverage": {
+                    "type": "integer",
+                    "description": "Minimum Illumina coverage threshold (generates warning if below this value)",
+                    "default": 30,
+                    "help_text": "Pipeline will generate a warning if Illumina coverage falls below this threshold, but will continue processing.",
+                    "fa_icon": "fas fa-layer-group"
+                },
+                "max_coverage": {
+                    "type": "integer",
+                    "description": "Target maximum Illumina coverage (for potential downsampling)",
+                    "default": 40,
+                    "help_text": "Target coverage level. Can be used for downsampling very high coverage samples to reduce computational time.",
+                    "fa_icon": "fas fa-compress"
+                },
+                "min_read_length": {
+                    "type": "integer",
+                    "description": "Minimum read length for Filtlong filtering (bp)",
+                    "default": 6000,
+                    "help_text": "Nanopore reads shorter than this will be removed by Filtlong. Adjust based on your sequencing platform and assembly requirements.",
+                    "fa_icon": "fas fa-arrows-alt-h"
+                },
+                "filtlong_keep_percent": {
+                    "type": "integer",
+                    "description": "Percentage of best quality reads to keep in Filtlong",
+                    "default": 95,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "help_text": "Filtlong will keep the best N% of reads based on quality scores. Lower values = more aggressive filtering.",
+                    "fa_icon": "fas fa-filter"
+                }
+            }
+        },
+        "resource_options": {
+            "title": "Resource options",
+            "type": "object",
+            "description": "Maximum resource limits for the pipeline",
+            "fa_icon": "fas fa-server",
+            "help_text": "Set the maximum resources that any single process can request. These limits help prevent processes from requesting more resources than available on your system.",
+            "properties": {
+                "max_cpus": {
+                    "type": "integer",
+                    "description": "Maximum number of CPUs that can be requested for any single process",
+                    "default": 12,
+                    "fa_icon": "fas fa-microchip",
+                    "help_text": "Processes will request multiple CPUs based on their needs, but will never exceed this value."
+                },
+                "max_memory": {
+                    "type": "string",
+                    "description": "Maximum amount of memory that can be requested for any single process",
+                    "default": "128.GB",
+                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
+                    "fa_icon": "fas fa-memory",
+                    "help_text": "Use standard memory units: KB, MB, GB, TB. Example: '128.GB' or '128GB'"
+                },
+                "max_time": {
+                    "type": "string",
+                    "description": "Maximum amount of time that can be requested for any single process",
+                    "default": "24.h",
+                    "pattern": "^(\\d+\\.?(s|m|h|d|))+$",
+                    "fa_icon": "fas fa-clock",
+                    "help_text": "Use standard time units: s (seconds), m (minutes), h (hours), d (days). Example: '24.h' or '1.d'"
+                }
+            }
+        },
+        "container_options": {
+            "title": "Container options",
+            "type": "object",
+            "description": "Singularity container settings",
+            "fa_icon": "fas fa-box",
+            "properties": {
+                "singularity_cachedir": {
+                    "type": "string",
+                    "description": "Directory for storing Singularity container images",
+                    "default": "./singularity_cache",
+                    "fa_icon": "fas fa-folder",
+                    "help_text": "Singularity images will be stored here. Can be a shared directory to avoid re-downloading containers."
+                },
+                "singularity_pull_docker_container": {
+                    "type": "boolean",
+                    "description": "Instead of directly downloading Singularity images, force conversion from Docker containers",
+                    "default": false,
+                    "hidden": true
+                }
+            }
+        },
+        "multiqc_options": {
+            "title": "MultiQC options",
+            "type": "object",
+            "description": "Options for the MultiQC report",
+            "fa_icon": "fas fa-chart-bar",
+            "properties": {
+                "multiqc_title": {
+                    "type": "string",
+                    "description": "Title for the MultiQC report",
+                    "default": "Hybrid Assembly Report",
+                    "fa_icon": "fas fa-heading"
+                }
+            }
+        },
+        "generic_options": {
+            "title": "Generic options",
+            "type": "object",
+            "description": "Less commonly used options for the pipeline",
+            "fa_icon": "fas fa-cog",
+            "help_text": "These options are common to all nf-core pipelines and allow you to customize things like help text, validation, and version information.",
+            "properties": {
+                "help": {
+                    "type": "boolean",
+                    "description": "Display help text and exit",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "version": {
+                    "type": "boolean",
+                    "description": "Display version information and exit",
+                    "fa_icon": "fas fa-code-branch",
+                    "hidden": true
+                },
+                "validate_params": {
+                    "type": "boolean",
+                    "description": "Boolean whether to validate parameters against the schema at runtime",
+                    "default": true,
+                    "fa_icon": "fas fa-check-square",
+                    "hidden": true
+                },
+                "validationShowHiddenParams": {
+                    "type": "boolean",
+                    "description": "Show all params when using --help",
+                    "default": false,
+                    "hidden": true
+                },
+                "validationSchemaIgnoreParams": {
+                    "type": "string",
+                    "description": "Comma-separated list of parameters to ignore during validation",
+                    "default": "genomes,igenomes_base",
+                    "hidden": true
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/$defs/input_output_options"
+        },
+        {
+            "$ref": "#/$defs/assembly_options"
+        },
+        {
+            "$ref": "#/$defs/qc_options"
+        },
+        {
+            "$ref": "#/$defs/resource_options"
+        },
+        {
+            "$ref": "#/$defs/container_options"
+        },
+        {
+            "$ref": "#/$defs/multiqc_options"
+        },
+        {
+            "$ref": "#/$defs/generic_options"
+        }
+    ]
+}
