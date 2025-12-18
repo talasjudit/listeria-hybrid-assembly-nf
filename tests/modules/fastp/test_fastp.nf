@@ -1,18 +1,9 @@
 #!/usr/bin/env nextflow
-
 /*
 ========================================================================================
     FASTP Module Unit Test
 ========================================================================================
-    Tests the FASTP module for Illumina read QC and trimming
-
-    Usage:
-      nextflow run tests/modules/fastp/test_fastp.nf -c nextflow.config -profile singularity,slurm
-    
-    Requirements:
-    - Test data in tests/data/ directory
-    - Singularity container downloaded
-
+    Usage: nextflow run tests/modules/fastp/test_fastp.nf -c nextflow.config -profile singularity,slurm
 ========================================================================================
 */
 

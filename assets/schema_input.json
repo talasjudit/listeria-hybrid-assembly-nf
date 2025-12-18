@@ -1,6 +1,6 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
-    "$id": "https://raw.githubusercontent.com/yourusername/listeria-hybrid-nf/master/assets/schema_input.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/talasjudit/listeria-hybrid-nf/master/assets/schema_input.json",
     "title": "listeria-hybrid-nf pipeline - params.input schema",
     "description": "Schema for validating the input samplesheet provided with params.input",
     "type": "array",
@@ -10,8 +10,7 @@
             "sample": {
                 "type": "string",
                 "pattern": "^[^\\s]+$",
-                "errorMessage": "Sample name must be provided and cannot contain spaces. Use underscores or hyphens instead of spaces.",
-                "meta": ["id"],
+                "errorMessage": "Sample name must be provided and cannot contain spaces.",
                 "description": "Unique sample identifier"
             },
             "nanopore": {
@@ -19,7 +18,7 @@
                 "format": "file-path",
                 "exists": true,
                 "pattern": "^\\S+\\.f(ast)?q\\.gz$",
-                "errorMessage": "Nanopore FastQ file path cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'. File must exist and be readable.",
+                "errorMessage": "Nanopore FastQ file must have extension '.fq.gz' or '.fastq.gz' and exist.",
                 "description": "Path to Nanopore long-read FastQ file (gzipped)"
             },
             "illumina_1": {
@@ -27,7 +26,7 @@
                 "format": "file-path",
                 "exists": true,
                 "pattern": "^\\S+\\.f(ast)?q\\.gz$",
-                "errorMessage": "Illumina R1 FastQ file path cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'. File must exist and be readable.",
+                "errorMessage": "Illumina R1 FastQ file must have extension '.fq.gz' or '.fastq.gz' and exist.",
                 "description": "Path to Illumina forward (R1) read FastQ file (gzipped)"
             },
             "illumina_2": {
@@ -35,22 +34,17 @@
                 "format": "file-path",
                 "exists": true,
                 "pattern": "^\\S+\\.f(ast)?q\\.gz$",
-                "errorMessage": "Illumina R2 FastQ file path cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'. File must exist and be readable.",
+                "errorMessage": "Illumina R2 FastQ file must have extension '.fq.gz' or '.fastq.gz' and exist.",
                 "description": "Path to Illumina reverse (R2) read FastQ file (gzipped)"
             }
         },
-        "required": ["sample", "nanopore", "illumina_1", "illumina_2"],
-        "errorMessage": {
-            "required": "All columns are required: sample, nanopore, illumina_1, illumina_2. This is a hybrid assembly pipeline and requires both Illumina and Nanopore data for all samples."
-        }
+        "required": [
+            "sample",
+            "nanopore",
+            "illumina_1",
+            "illumina_2"
+        ]
     },
     "minItems": 1,
-    "errorMessage": {
-        "minItems": "Samplesheet must contain at least one sample"
-    },
-    "uniqueItems": true,
-    "uniqueItemProperties": ["sample"],
-    "errorMessage": {
-        "uniqueItems": "Sample names must be unique. Found duplicate sample identifier."
-    }
+    "uniqueItems": true
 }

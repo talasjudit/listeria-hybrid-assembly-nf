@@ -21,7 +21,7 @@ This directory contains subworkflows that group related processes or handle comp
 |-------------|---------|-----------|------------|
 | `input_check.nf` | Parse and validate samplesheet | nf-schema parsing | Complex parsing |
 | `qc_nanopore.nf` | Nanopore QC pipeline | PORECHOP_ABI → FILTLONG | Sequential chain |
-| `assembly_hybrid.nf` | Conditional assembly logic | UNICYCLER or UNICYCLER_WITH_FLYE | Conditional execution |
+| `assembly_hybrid.nf` | Conditional assembly logic | UNICYCLER (Standard or Flye mode) | Conditional execution |
 | `qc_assembly.nf` | Assembly quality assessment | CHECKM2 + QUAST (parallel) | Parallel execution |
 
 ## Why These Subworkflows?
@@ -150,8 +150,8 @@ FILTLONG(PORECHOP_ABI.out.reads)
 if (params.use_flye) {
     ch_combined = ch_illumina.join(FILTLONG.out.reads)
     ch_with_flye = ch_combined.join(ch_flye_assembly)
-    UNICYCLER_WITH_FLYE(ch_with_flye)
-    ch_assembly = UNICYCLER_WITH_FLYE.out.assembly
+    UNICYCLER(ch_with_flye) // Configured for Flye
+    ch_assembly = UNICYCLER.out.assembly
 } else {
     ch_combined = ch_illumina.join(FILTLONG.out.reads)
     UNICYCLER(ch_combined)
@@ -238,7 +238,7 @@ ch_nanopore_clean = QC_NANOPORE.out.reads
 **Decision logic:**
 ```
 if params.use_flye:
-    UNICYCLER_WITH_FLYE(illumina, nanopore, flye)
+    UNICYCLER(illumina, nanopore, flye)
 else:
     UNICYCLER(illumina, nanopore)
 ```

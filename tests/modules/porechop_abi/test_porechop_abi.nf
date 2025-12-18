@@ -1,18 +1,9 @@
 #!/usr/bin/env nextflow
-
 /*
 ========================================================================================
     PORECHOP_ABI Module Unit Test
 ========================================================================================
-    Tests the PORECHOP_ABI module for Nanopore adapter trimming
-
-    Usage:
-      nextflow run tests/modules/porechop_abi/test_porechop_abi.nf -c nextflow.config -profile singularity,slurm
-
-    Requirements:
-    - Test data in tests/data/ directory
-    - Singularity container downloaded
-
+    Usage: nextflow run tests/modules/porechop_abi/test_porechop_abi.nf -c nextflow.config -profile singularity,slurm
 ========================================================================================
 */
 

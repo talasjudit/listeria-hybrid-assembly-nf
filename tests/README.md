@@ -290,9 +290,10 @@ When adding a new module, create tests that verify:
 
 ## TODO for Phase 2+
 
-- [ ] Add actual test data to `tests/data/`
-- [ ] Implement all module test workflows
-- [ ] Create integration test workflow
+- [x] Add actual test data to `tests/data/`
+- [x] Implement most module test workflows
+- [x] Create integration test workflow (subworkflows tested)
+- [ ] Create main pipeline integration test
 - [ ] Set up CI/CD pipeline
 - [ ] Add test data generation scripts
 - [ ] Document expected test outputs

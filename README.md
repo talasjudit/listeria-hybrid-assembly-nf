@@ -87,12 +87,12 @@ Sample002,/data/nanopore/sample2.fastq.gz,/data/illumina/sample2_R1.fastq.gz,/da
 
 ### 5. Run Pipeline
 
-**On HPC with SLURM:**
+**On QIB/NBI HPC:**
 ```bash
 nextflow run main.nf \
   --input samplesheet.csv \
   --outdir results \
-  -profile singularity,slurm
+  -profile qib
 ```
 
 > #### HPC Without Internet Access
@@ -110,7 +110,7 @@ nextflow run main.nf \
   --outdir results \
   --max_cpus 8 \
   --max_memory 32.GB \
-  -profile singularity,local
+  -profile local
 ```
 
 **With Flye pre-assembly (for complex genomes):**
@@ -119,7 +119,7 @@ nextflow run main.nf \
   --input samplesheet.csv \
   --outdir results \
   --use_flye \
-  -profile singularity,slurm
+  -profile qib
 ```
 
 ## Pipeline Steps
@@ -187,19 +187,21 @@ results/
 
 ### Profiles
 
-**Executor profiles:**
-- `slurm` - SLURM HPC execution
-- `local` - Local workstation execution
-- `test` - Minimal resources for testing
+| Profile | Purpose |
+|---------|---------|
+| `qib` | QIB/NBI HPC with SLURM (partition auto-selection) |
+| `slurm` | Generic SLURM HPC (customize partitions) |
+| `local` | Local workstation execution |
+| `test` | Test resources (combine with executor profile) |
 
-**Container profile (required):**
-- `singularity` - Use Singularity containers
+> **Note:** Singularity is auto-enabled in all profiles. No need to specify `-profile singularity` separately.
 
-**Combine profiles:**
+**Common usage:**
 ```bash
--profile singularity,slurm  # HPC execution
--profile singularity,local  # Local execution
--profile test               # Testing mode
+-profile test,qib      # QIB HPC testing
+-profile qib           # QIB HPC production
+-profile test,local    # Local testing
+-profile slurm         # Generic SLURM (customize partitions)
 ```
 
 ### Common Parameters
@@ -315,33 +317,32 @@ For more troubleshooting, see [docs/usage.md](docs/usage.md).
 
 ## Development Status
 
-🚧 **Current Status: Phase 1 Complete - Framework and Scaffolding**
+🚧 **Current Status: Phase 3 - Workflow Integration & Testing**
 
 ### Phase 1 ✅ (Complete)
 - [x] Project structure and directory organization
 - [x] Configuration files (Nextflow, profiles, resources)
 - [x] Validation schemas (parameters and samplesheet)
-- [x] All 9 process module templates with TODOs
-- [x] 4 subworkflow templates
+- [x] All process module templates
+- [x] Subworkflow templates
 - [x] Main workflow template
 - [x] Testing framework structure
-- [x] Comprehensive documentation
+- [x] Documentation
 - [x] Working installation workflow
 
-### Phase 2 ⏳ (Next)
-- [ ] Implement process modules (fastp, porechop, filtlong, etc.)
-- [ ] Implement subworkflows
-- [ ] Connect workflow steps in main.nf
-- [ ] Add test data
-- [ ] Test individual modules
-- [ ] Integration testing
+### Phase 2 ✅ (Complete)
+- [x] Implement process modules (fastp, porechop, filtlong, unicycler, checkm2, quast)
+- [x] Implement subworkflows (QC sequences, Assembly, QC assembly)
+- [x] Local module testing
+- [x] Container verification
 
-### Phase 3 (Future)
+### Phase 3 ⏳ (In Progress)
+- [x] Input validation subworkflow (nf-schema)
+- [ ] Connect workflow steps in main.nf
+- [ ] Integration testing with real data
 - [ ] Parameter optimization
 - [ ] Performance tuning
-- [ ] Additional QC metrics
-- [ ] CI/CD integration
-- [ ] Publication and release
+- [ ] Release v1.0.0
 
 ## Tools and Versions
 

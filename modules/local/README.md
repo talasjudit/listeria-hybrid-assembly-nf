@@ -6,17 +6,15 @@ This directory contains custom process modules for the hybrid assembly pipeline.
 
 | Module | Tool | Purpose | Status |
 |--------|------|---------|--------|
-| `fastp.nf` | fastp 1.0.1 | Illumina read QC and trimming | Template |
-| `porechop_abi.nf` | Porechop ABI 0.5.0 | Nanopore adapter removal | Template |
-| `filtlong.nf` | Filtlong 0.3.0 | Nanopore quality filtering | Template |
-| `flye.nf` | Flye 2.9.6 | Long-read assembly | Template |
-| `unicycler.nf` | Unicycler 0.5.1 | Standard hybrid assembly | Template |
-| `unicycler_with_flye.nf` | Unicycler 0.5.1 | Hybrid with existing assembly | Template |
-| `checkm2.nf` | CheckM2 1.1.0 | Assembly completeness | Template |
-| `quast.nf` | QUAST 5.3.0 | Assembly statistics | Template |
-| `multiqc.nf` | MultiQC 1.31 | Report aggregation | Template |
-
-**Status:** All modules are currently templates with TODO comments for Phase 2+ implementation.
+| `fastp.nf` | fastp 1.0.1 | Illumina read QC and trimming | Verified |
+| `porechop_abi.nf` | Porechop ABI 0.5.0 | Nanopore adapter removal | Verified |
+| `filtlong.nf` | Filtlong 0.3.0 | Nanopore quality filtering | Verified |
+| `flye.nf` | Flye 2.9.6 | Long-read assembly | Verified |
+| `unicycler.nf` | Unicycler 0.5.1 | Hybrid assembly (Standard & Flye modes) | Verified |
+| `checkm2.nf` | CheckM2 1.1.0 | Assembly completeness | Verified |
+| `quast.nf` | QUAST 5.3.0 | Assembly statistics | Verified |
+| `multiqc.nf` | MultiQC 1.31 | Report aggregation | Verified |
+| `coverage_check.nf` | SeqKit 2.12.0 | Coverage validation | Verified |
 
 ## Module Structure
 

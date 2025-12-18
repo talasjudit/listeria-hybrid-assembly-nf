@@ -1,18 +1,9 @@
 #!/usr/bin/env nextflow
-
 /*
 ========================================================================================
     FILTLONG Module Unit Test
 ========================================================================================
-    Tests the FILTLONG module for Nanopore read quality filtering
-
-    Usage:
-      nextflow run tests/modules/filtlong/test_filtlong.nf -c nextflow.config -profile singularity,slurm
-
-    Requirements:
-    - Test data in tests/data/ directory
-    - Singularity container downloaded
-
+    Usage: nextflow run tests/modules/filtlong/test_filtlong.nf -c nextflow.config -profile singularity,slurm
 ========================================================================================
 */
 

@@ -1,47 +1,54 @@
 # Workflows Directory
 
-This directory contains auxiliary workflows that are separate from the main pipeline workflow.
+This directory contains the main pipeline workflow and auxiliary workflows.
 
 ## Files
 
 | File | Status | Purpose |
 |------|--------|---------|
+| `main.nf` | ✅ Complete | Main hybrid assembly pipeline orchestration |
 | `install.nf` | ✅ Complete | Download all Singularity containers |
 
-## install.nf
+## main.nf
 
-**Status:** Fully implemented and working
+**Status:** Fully implemented and tested (both standard and Flye modes)
 
-**Purpose:** Downloads all Singularity containers required for the pipeline
+**Purpose:** Orchestrates the complete hybrid assembly pipeline
+
+### Pipeline Steps
+
+1. **INPUT_CHECK** - Parse samplesheet and validate inputs
+2. **FASTP** - Illumina read QC and trimming
+3. **QC_NANOPORE** - Nanopore adapter removal and quality filtering (Porechop + Filtlong)
+4. **FLYE** (optional) - Long-read de novo assembly
+5. **ASSEMBLY_HYBRID** - Hybrid assembly with Unicycler
+6. **QC_ASSEMBLY** - Assembly quality assessment (CheckM2 + QUAST)
+7. **MULTIQC** - Aggregate all QC reports
 
 ### Usage
 
-Basic usage:
 ```bash
-nextflow run main.nf -entry INSTALL -profile singularity -c nextflow.config
+# Standard mode (Unicycler only)
+nextflow run main.nf -profile singularity,slurm --input samplesheet.csv --outdir results
+
+# With Flye pre-assembly
+nextflow run main.nf -profile singularity,slurm --input samplesheet.csv --outdir results --use_flye
 ```
 
-With custom cache directory:
-```bash
-nextflow run main.nf -entry INSTALL -profile singularity -c nextflow.config --singularity_cachedir /path/to/cache
-```
+---
+
+## install.nf
+
+**Status:** Fully implemented and tested
+
+**Purpose:** Downloads all Singularity containers required for the pipeline
 
 ### What It Does
 
-1. **Creates cache directory** if it doesn't exist
-2. **Downloads 8 containers:**
-   - fastp (1.0.1)
-   - multiqc (1.31)
-   - porechop_abi (0.5.0)
-   - filtlong (0.3.0)
-   - flye (2.9.6)
-   - unicycler (0.5.1)
-   - checkm2 (1.1.0)
-   - quast (5.3.0)
-
-3. **Checks existing files** - skips already downloaded containers
-4. **Verifies downloads** - ensures files are not empty
-5. **Reports progress** - shows download status and final summary
+1. **Downloads containers** from GHCR and Quay.io
+2. **Checks existing files** - skips already downloaded containers (storeDir caching)
+3. **Verifies downloads** - runs version command on each container
+4. **Reports progress** - shows download status and final summary
 
 ### Features
 

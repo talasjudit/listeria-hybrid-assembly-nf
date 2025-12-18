@@ -26,9 +26,9 @@ process MULTIQC {
     path(multiqc_config)    // MultiQC configuration file
 
     output:
-    path 'multiqc_report.html', emit: report
-    path 'multiqc_data'        , emit: data
-    path 'versions.yml'        , emit: versions
+    path 'multiqc_report.html'      , emit: report
+    path 'multiqc_report_data'      , emit: data
+    path 'versions.yml'             , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -57,8 +57,8 @@ process MULTIQC {
     stub:
     """
     touch multiqc_report.html
-    mkdir multiqc_data
-    touch multiqc_data/multiqc_data.json
+    mkdir multiqc_report_data
+    touch multiqc_report_data/multiqc_data.json
     touch versions.yml
     """
 }

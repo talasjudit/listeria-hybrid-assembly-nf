@@ -7,24 +7,30 @@ This directory contains configuration files for different execution environments
 | File | Purpose |
 |------|---------|
 | `base.config` | Per-process resource allocations (CPU, memory, time) |
-| `slurm.config` | SLURM executor configuration for HPC systems |
+| `slurm.config` | Generic SLURM executor configuration (any HPC) |
+| `qib.config` | QIB/NBI HPC-specific settings (partition names) |
 | `local.config` | Local executor configuration for workstations |
-| `test.config` | Minimal resources for testing with small datasets |
+| `test.config` | Moderate resources for testing with real data |
 
 ## Usage
 
 Configurations are loaded via profiles in `nextflow.config`:
 
 ```bash
-# SLURM execution
-nextflow run main.nf -profile singularity,slurm
+# QIB HPC execution (singularity auto-enabled)
+nextflow run main.nf -profile qib --input samplesheet.csv
+
+# QIB HPC testing
+nextflow run main.nf -profile test,qib
 
 # Local execution
-nextflow run main.nf -profile singularity,local
+nextflow run main.nf -profile test,local
 
-# Test mode
-nextflow run main.nf -profile test
+# Generic SLURM (customize partitions with -c my_hpc.config)
+nextflow run main.nf -profile slurm -c my_hpc.config --input samplesheet.csv
 ```
+
+> **Note:** Singularity is auto-enabled in all profiles.
 
 ## base.config
 
@@ -54,38 +60,43 @@ withName: 'FASTP' {
 
 ## slurm.config
 
-**Purpose:** Configuration for SLURM-based HPC systems
+**Purpose:** Generic SLURM configuration for any HPC system
 
 **Key features:**
-- Automatic partition/queue selection based on time requirements
-- Configurable cluster options (account, QOS, etc.)
+- SLURM executor settings
 - Job submission rate limiting
-- Queue size management
+- Singularity support (auto-enabled)
+- Offline mode for compute nodes
 
-**Customization required:**
-1. **Partition names:** Update `queue` to match your HPC system
-   ```groovy
-   queue = { task.time <= 4.h ? 'short' : 'medium' }
-   ```
+**Note:** This is a generic config without partition names. For site-specific settings:
+- Use `qib` profile for QIB/NBI HPC
+- Create a custom config for other HPCs
 
-2. **Account/Project:** Add if required by your system
-   ```groovy
-   clusterOptions = '--account=YOUR_PROJECT'
-   ```
+**Creating a custom HPC config:**
+```groovy
+// my_hpc.config
+process {
+    queue = { task.time <= 2.h ? 'short' : 'long' }
+    clusterOptions = '--account=YOUR_PROJECT'
+}
+```
 
-3. **Submission limits:** Adjust based on cluster policies
-   ```groovy
-   queueSize = 50
-   submitRateLimit = '10 sec'
-   ```
+Then run: `nextflow run main.nf -profile slurm -c my_hpc.config`
 
-**Finding your system's settings:**
+## qib.config
+
+**Purpose:** QIB/NBI HPC-specific settings
+
+**Key features:**
+- Automatic partition selection:
+  - `qib-short` for jobs ≤2 hours
+  - `qib-medium` for jobs ≤48 hours  
+  - `qib-long` for jobs >48 hours
+
+**Usage:**
 ```bash
-# List partitions and time limits
-sinfo -o "%P %l"
-
-# Check if account is required
-sacctmgr show user $USER format=account
+nextflow run main.nf -profile test,qib
+nextflow run main.nf -profile qib --input samplesheet.csv
 ```
 
 ## local.config

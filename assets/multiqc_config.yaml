@@ -101,15 +101,13 @@ table_columns_placement:
 
 # Sample name cleaning
 # Clean up sample names for better display
-sample_names_replace_exact: false
-sample_names_replace_complete: false
+# Format: 'search_pattern': 'replacement' (empty string to remove)
 sample_names_replace:
-    # Remove common suffixes
-    - '_trimmed'
-    - '_porechop'
-    - '_filtlong'
-    - '_unicycler'
-    - '_flye'
+    '_trimmed': ''
+    '_porechop': ''
+    '_filtlong': ''
+    '_unicycler': ''
+    '_flye': ''
 
 # Configure specific modules
 # Customize behavior of individual MultiQC modules

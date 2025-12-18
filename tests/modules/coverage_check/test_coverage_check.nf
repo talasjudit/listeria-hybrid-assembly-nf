@@ -1,20 +1,10 @@
 #!/usr/bin/env nextflow
-
 /*
 ========================================================================================
     COVERAGE_CHECK Module Unit Test
 ========================================================================================
-    Unified test for COVERAGE_CHECK module.
-    Adapts validation logic based on input parameters.
-
-    1. Test PASS (Default):
-       nextflow run tests/modules/coverage_check/test_coverage_check.nf -c nextflow.config -profile singularity,slurm
-
-    2. Test FAIL (High Thresholds):
-       nextflow run tests/modules/coverage_check/test_coverage_check.nf \
-         -c nextflow.config \
-         -c tests/modules/coverage_check/fail.config \
-         -profile singularity,slurm
+    Usage: nextflow run tests/modules/coverage_check/test_coverage_check.nf -c nextflow.config -profile singularity,slurm
+    Test FAIL case: add -c tests/modules/coverage_check/fail.config
 ========================================================================================
 */
 

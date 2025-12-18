@@ -174,9 +174,9 @@ custom_data:
 
 Happens automatically at pipeline start:
 ```groovy
-include { fromSamplesheet } from 'plugin/nf-schema'
+Include { samplesheetToList } from 'plugin/nf-schema'
 
-Channel.fromSamplesheet('input')  // Uses schema_input.json
+Channel.fromList(samplesheetToList(params.input, "assets/schema_input.json"))
 ```
 
 If validation fails:

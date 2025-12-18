@@ -4,47 +4,16 @@
 ========================================================================================
     Container Installation Workflow
 ========================================================================================
-    Downloads all Singularity containers needed for the hybrid assembly pipeline
+    Downloads and verifies all Singularity containers for the hybrid assembly pipeline.
+    Uses storeDir for automatic caching - already-downloaded containers are skipped.
 
-    This workflow:
-    - Downloads containers from GHCR and Quay.io
-    - Caches nf-schema plugin for offline use (from nextflow.config)
-    - Uses storeDir to skip already-downloaded containers (auto-resumable)
-    - Verifies successful downloads
-    - Provides progress updates
-
-    Usage:
-      nextflow run main.nf -entry INSTALL -profile singularity -resume
-
-      # With custom cache directory
-      nextflow run main.nf -entry INSTALL -profile singularity \\
-        --singularity_cachedir /path/to/cache
-
-    Requirements:
-      - Singularity/Apptainer must be installed and in PATH
-      - Internet connection for downloading containers and plugin
-      - Sufficient disk space (~5-10 GB for all containers)
-
-    Notes:
-      - This workflow should be run on a node with internet access
-      - On HPC systems without internet on compute nodes, run this on a login node
-      - Downloads can be resumed if interrupted (-resume flag)
-      - Containers are shared across all pipeline runs using the same cache directory
-      - Running this workflow also caches the nf-schema plugin to ~/.nextflow/plugins/
+    Usage: nextflow run main.nf -entry INSTALL -profile singularity -resume
 ========================================================================================
 */
 
 nextflow.enable.dsl=2
 
-/*
-========================================================================================
-    CONTAINER DEFINITIONS
-========================================================================================
-    List of containers with their source URLs and version commands for verification
-
-    Format: [filename, url, version_command]
-    Note: Using consistent naming scheme: <tool>-<version>.sif
-*/
+// Container definitions: [filename, url, version_command]
 
 def containers = [
     // Illumina QC
@@ -186,41 +155,7 @@ workflow INSTALL {
 ========================================================================================
 */
 
-workflow.onComplete {
-    log.info ""
-    log.info "═══════════════════════════════════════════════════════════════"
+// Note: Completion handler moved to workflows/main.nf
+// This file only defines the INSTALL workflow
 
-    if (workflow.success) {
-        log.info "Installation workflow completed successfully!"
-        log.info "═══════════════════════════════════════════════════════════════"
-        log.info ""
-        log.info "All containers are now available in: ${params.singularity_cachedir}"
-        log.info ""
-        log.info "You can now run the pipeline:"
-        log.info "  nextflow run main.nf -profile singularity,slurm --input samplesheet.csv"
-        log.info ""
-    } else {
-        log.info "Installation workflow failed!"
-        log.info "═══════════════════════════════════════════════════════════════"
-        log.info ""
-        log.info "Please check the error messages above."
-        log.info ""
-        log.info "Common issues:"
-        log.info "  - No internet connection"
-        log.info "  - Singularity/Apptainer not installed or not in PATH"
-        log.info "  - Insufficient disk space"
-        log.info "  - Container URL changed or is unavailable"
-        log.info ""
-        log.info "For help, see: https://github.com/yourusername/listeria-hybrid-nf/issues"
-        log.info ""
-    }
-}
-
-workflow.onError {
-    log.error ""
-    log.error "═══════════════════════════════════════════════════════════════"
-    log.error "Installation stopped with error:"
-    log.error workflow.errorMessage
-    log.error "═══════════════════════════════════════════════════════════════"
-    log.error ""
-}
+// Note: Error handler moved to workflows/main.nf
