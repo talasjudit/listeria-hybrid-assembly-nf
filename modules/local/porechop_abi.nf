@@ -29,9 +29,15 @@ process PORECHOP_ABI {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
+    # Create tmp directory with permissive permissions for Singularity compatibility
+    # Required when running with --no-home and cleared environment (env -)
+    mkdir -p tmp
+    chmod 777 tmp
+
     porechop_abi \\
         -i ${reads} \\
         -o ${prefix}_porechop.fastq.gz \\
+        -tmp ./tmp \\
         --threads ${task.cpus} \\
         --ab_initio \\
         --verbosity 2 \\
