@@ -331,10 +331,10 @@ tool input.fastq ${optional_input} > output.txt
 - Needs params.genome_size
 - Creates multiple output files
 
-### UNICYCLER vs UNICYCLER_WITH_FLYE
-- Different input structures
-- Same outputs
-- Choose based on params.use_flye
+### UNICYCLER
+- Single process handles both standard hybrid and existing-assembly modes
+- Optional `assembly` input (provided when `params.use_flye = true`)
+- Choose mode based on params.use_flye
 
 ### CHECKM2
 - Requires CheckM2 database

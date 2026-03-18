@@ -67,19 +67,19 @@
             "description": "Quality control thresholds and parameters",
             "fa_icon": "fas fa-check-circle",
             "properties": {
-                "min_coverage": {
+                "min_illumina_coverage": {
                     "type": "integer",
-                    "description": "Minimum Illumina coverage threshold (generates warning if below this value)",
+                    "description": "Minimum Illumina coverage required to pass the coverage gate",
                     "default": 30,
-                    "help_text": "Pipeline will generate a warning if Illumina coverage falls below this threshold, but will continue processing.",
+                    "help_text": "Samples with Illumina coverage below this threshold will be excluded from assembly. Coverage is calculated against params.genome_size.",
                     "fa_icon": "fas fa-layer-group"
                 },
-                "max_coverage": {
+                "min_nanopore_coverage": {
                     "type": "integer",
-                    "description": "Target maximum Illumina coverage (for potential downsampling)",
-                    "default": 40,
-                    "help_text": "Target coverage level. Can be used for downsampling very high coverage samples to reduce computational time.",
-                    "fa_icon": "fas fa-compress"
+                    "description": "Minimum Nanopore coverage required to pass the coverage gate",
+                    "default": 20,
+                    "help_text": "Samples with Nanopore coverage below this threshold will be excluded from assembly. Coverage is calculated against params.genome_size.",
+                    "fa_icon": "fas fa-layer-group"
                 },
                 "min_read_length": {
                     "type": "integer",
@@ -140,7 +140,7 @@
                 "singularity_cachedir": {
                     "type": "string",
                     "description": "Directory for storing Singularity container images",
-                    "default": "./singularity_cache",
+                    "default": "${launchDir}/singularity_cache",
                     "fa_icon": "fas fa-folder",
                     "help_text": "Singularity images will be stored here. Can be a shared directory to avoid re-downloading containers."
                 },

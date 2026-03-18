@@ -57,9 +57,8 @@ process FLYE {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    mkdir -p ${prefix}_flye
     touch ${prefix}_flye.fasta
-    touch ${prefix}_flye/assembly_info.txt
+    touch ${prefix}_flye_info.txt
     touch ${prefix}_flye.log
     touch versions.yml
     """
