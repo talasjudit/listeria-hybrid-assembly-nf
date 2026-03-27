@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/talasjudit/listeria-hybrid-nf/main/nextflow_schema.json",
-    "title": "listeria-hybrid-nf pipeline parameters",
+    "$id": "https://raw.githubusercontent.com/talasjudit/listeria-hybrid-assembly-nf/main/nextflow_schema.json",
+    "title": "listeria-hybrid-assembly-nf pipeline parameters",
     "description": "Hybrid bacterial genome assembly pipeline using Illumina and Nanopore sequencing data",
     "type": "object",
     "$defs": {
@@ -44,11 +44,12 @@
             "description": "Options for assembly strategy and parameters",
             "fa_icon": "fas fa-dna",
             "properties": {
-                "use_flye": {
-                    "type": "boolean",
-                    "description": "Run Flye long-read assembly before Unicycler (enables hybrid assembly with existing assembly mode)",
-                    "default": false,
-                    "help_text": "When enabled, Flye will first create a long-read-only assembly, which is then used as a scaffold for Unicycler's hybrid assembly. This can improve assembly quality for complex genomes.",
+                "assembly_mode": {
+                    "type": "string",
+                    "description": "Assembly mode to use",
+                    "default": "unicycler",
+                    "enum": ["unicycler", "flye_unicycler", "flye_polypolish"],
+                    "help_text": "unicycler (default): Unicycler hybrid assembly using Illumina + Nanopore reads. flye_unicycler: Flye long-read assembly used as scaffold for Unicycler. flye_polypolish: Flye long-read assembly polished with Polypolish (Illumina). The two Flye-based modes require --genome_size.",
                     "fa_icon": "fas fa-project-diagram"
                 },
                 "genome_size": {
@@ -56,8 +57,15 @@
                     "description": "Expected genome size for Flye assembly (e.g., '3m' for 3 megabases)",
                     "default": "3m",
                     "pattern": "^[0-9]+(\\.[0-9]+)?[kmg]?$",
-                    "help_text": "Approximate genome size used by Flye. Use suffixes: k (kilobases), m (megabases), g (gigabases). Example: '3m' for a 3 Mb bacterial genome.",
+                    "help_text": "Approximate genome size used by Flye. Use suffixes: k (kilobases), m (megabases), g (gigabases). Example: '3m' for a 3 Mb bacterial genome. Required for flye_unicycler and flye_polypolish modes.",
                     "fa_icon": "fas fa-ruler"
+                },
+                "reference": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to reference genome FASTA for dnadiff comparison (flye_polypolish mode only)",
+                    "help_text": "Optional. When provided alongside --assembly_mode flye_polypolish, the final assembly is compared to this reference using dnadiff (MUMmer). Not used in other assembly modes.",
+                    "fa_icon": "fas fa-book"
                 }
             }
         },
