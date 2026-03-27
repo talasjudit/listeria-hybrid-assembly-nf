@@ -15,7 +15,7 @@ process UNICYCLER {
 
     container "${params.singularity_cachedir}/unicycler-0.5.1.sif"
 
-    publishDir "${params.outdir}/assembly/unicycler", mode: 'copy'
+    publishDir "${params.outdir}/assembly/${params.assembly_mode}/unicycler", mode: 'copy', pattern: "*.{gfa,log}"
 
     input:
     tuple val(meta), path(illumina_reads), path(nanopore_reads), path(assembly)

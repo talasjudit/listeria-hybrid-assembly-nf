@@ -93,7 +93,7 @@ process COVERAGE_CHECK {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_coverage_report.txt
+    echo "Status: PASSED" > ${prefix}_coverage_report.txt
     touch versions.yml
     """
 }

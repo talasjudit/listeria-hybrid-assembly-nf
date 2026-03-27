@@ -14,7 +14,7 @@ process QUAST {
     tag "$meta.id"
 
     container "${params.singularity_cachedir}/quast-5.3.0.sif"
-    publishDir "${params.outdir}/qc/quast", mode: 'copy'
+    publishDir "${params.outdir}/qc/${params.assembly_mode}/quast", mode: 'copy'
 
     input:
     tuple val(meta), path(assembly)  // assembly = unicycler.fasta

@@ -15,7 +15,7 @@ process FLYE {
 
     container "${params.singularity_cachedir}/flye-2.9.6.sif"
     
-    publishDir "${params.outdir}/assembly/flye", mode: 'copy'
+    publishDir "${params.outdir}/assembly/${params.assembly_mode}/flye", mode: 'copy', pattern: "*_flye{_info.txt,.log}"
 
     input:
     tuple val(meta), path(reads)  // reads = nanopore_filtlong.fastq.gz

@@ -21,6 +21,8 @@ process MULTIQC {
 
     container "${params.singularity_cachedir}/multiqc-1.31.sif"
 
+    publishDir "${params.outdir}/qc/${params.assembly_mode}/multiqc", mode: 'copy'
+
     input:
     path(multiqc_files)     // All QC files to aggregate (collected)
     path(multiqc_config)    // MultiQC configuration file

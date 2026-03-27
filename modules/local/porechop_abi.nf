@@ -4,14 +4,16 @@
 ========================================================================================
     Porechop ABI finds and removes adapters from Oxford Nanopore reads
     
-    Container: oras://ghcr.io/talasjudit/bsup-2555/porechop_abi:0.5.0-1
+    Container: oras://ghcr.io/talasjudit/bsup-2555/porechop_abi:0.5.1-1
     Documentation: https://github.com/bonsai-team/Porechop_ABI
 */
 
 process PORECHOP_ABI {
     tag "$meta.id"
 
-    container "${params.singularity_cachedir}/porechop_abi-0.5.0.sif"
+    container "${params.singularity_cachedir}/porechop_abi-0.5.1.sif"
+
+    publishDir "${params.outdir}/qc/porechop", mode: 'copy', pattern: "*.log"
 
     input:
     tuple val(meta), path(reads)  // reads = nanopore.fastq.gz

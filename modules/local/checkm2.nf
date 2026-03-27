@@ -14,7 +14,7 @@ process CHECKM2 {
     tag "$meta.id"
 
     container "${params.singularity_cachedir}/checkm2-1.1.0.sif"
-    publishDir "${params.outdir}/qc/checkm2", mode: 'copy'
+    publishDir "${params.outdir}/qc/${params.assembly_mode}/checkm2", mode: 'copy'
 
     input:
     tuple val(meta), path(assembly)  // assembly = unicycler.fasta

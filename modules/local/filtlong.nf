@@ -4,7 +4,7 @@
 ========================================================================================
     Filtlong filters long reads by quality.
 
-    Container: oras://ghcr.io/talasjudit/bsup-2555/filtlong:0.3.0-1
+    Container: oras://ghcr.io/talasjudit/bsup-2555/filtlong:0.3.1-1
     Documentation: https://github.com/rrwick/Filtlong
 
 ========================================================================================
@@ -13,7 +13,9 @@
 process FILTLONG {
     tag "$meta.id"
 
-    container "${params.singularity_cachedir}/filtlong-0.3.0.sif"
+    container "${params.singularity_cachedir}/filtlong-0.3.1.sif"
+
+    publishDir "${params.outdir}/qc/filtlong", mode: 'copy', pattern: "*.log"
 
     input:
     tuple val(meta), path(reads)  // reads = nanopore_porechop.fastq.gz
