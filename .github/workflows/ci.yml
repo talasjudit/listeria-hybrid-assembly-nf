@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  stub-run:
+    name: Stub run (${{ matrix.assembly_mode }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        assembly_mode: [unicycler, flye_unicycler, flye_polypolish]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nextflow
+        uses: nf-core/setup-nextflow@v2
+        with:
+          version: ">=23.04.0"
+
+      - name: Create minimal FASTQ stubs for samplesheet validation
+        run: |
+          printf '@r1\nACGT\n+\nIIII\n' | gzip > tests/data/test_R1.fastq.gz
+          printf '@r1\nACGT\n+\nIIII\n' | gzip > tests/data/test_R2.fastq.gz
+          printf '@r1\nACGTACGTACGTACGT\n+\nIIIIIIIIIIIIIIII\n' | gzip > tests/data/test_nanopore.fastq.gz
+
+      - name: Create minimal reference FASTA (flye_polypolish only)
+        if: matrix.assembly_mode == 'flye_polypolish'
+        run: |
+          printf '>ref\nACGTACGT\n' > tests/data/test_reference.fasta
+
+      - name: Stub run - ${{ matrix.assembly_mode }}
+        run: |
+          REFERENCE_ARG=""
+          if [ "${{ matrix.assembly_mode }}" = "flye_polypolish" ]; then
+            REFERENCE_ARG="--reference tests/data/test_reference.fasta"
+          fi
+          nextflow run main.nf \
+            -stub \
+            -profile ci \
+            --assembly_mode ${{ matrix.assembly_mode }} \
+            --input tests/data/samplesheet_test.csv \
+            --outdir results_ci \
+            ${REFERENCE_ARG}
+
+      - name: Check expected outputs exist
+        run: |
+          MODE=${{ matrix.assembly_mode }}
+          test -d results_ci/assembly/${MODE}
+          test -d results_ci/qc/${MODE}/multiqc
+          test -d results_ci/qc/circularity
