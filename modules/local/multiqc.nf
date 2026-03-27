@@ -24,8 +24,8 @@ process MULTIQC {
     publishDir "${params.outdir}/qc/${params.assembly_mode}/multiqc", mode: 'copy'
 
     input:
-    path(multiqc_files)     // All QC files to aggregate (collected)
-    path(multiqc_config)    // MultiQC configuration file
+    path(multiqc_files, stageAs: "?/*")  // staged in numbered subdirs to avoid name collisions
+    path(multiqc_config)                 // MultiQC configuration file
 
     output:
     path 'multiqc_report.html'      , emit: report
