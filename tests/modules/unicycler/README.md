@@ -16,5 +16,5 @@ Uses standard test data in `tests/data/`.
 
 ```bash
 export NXF_OFFLINE=true
-nextflow run tests/modules/unicycler/test_unicycler.nf -c nextflow.config -profile singularity,slurm
+nextflow run tests/modules/unicycler/test_unicycler.nf -c nextflow.config -profile singularity,qib
 ```

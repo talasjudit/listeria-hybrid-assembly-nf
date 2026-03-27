@@ -17,6 +17,14 @@ nextflow.enable.dsl=2
 
 include { UNICYCLER } from '../../../modules/local/unicycler'
 
+// Verify required test data is present
+def missing = ['test_R1.fastq.gz', 'test_R2.fastq.gz', 'test_nanopore.fastq.gz'].findAll {
+    !file("${launchDir}/tests/data/${it}").exists()
+}
+if (missing) {
+    error "Missing test data: ${missing.join(', ')}\nRun: bash tests/data/download_test_data.sh\nNote: requires internet access - on HPC, run from a login node first."
+}
+
 workflow {
     log.info "Testing UNICYCLER module..."
 

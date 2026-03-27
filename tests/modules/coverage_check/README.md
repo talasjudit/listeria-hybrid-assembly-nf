@@ -28,7 +28,7 @@ This uses default thresholds (30x/20x), expecting the sample to **PASS**.
 
 ```bash
 export NXF_OFFLINE=true
-nextflow run tests/modules/coverage_check/test_coverage_check.nf -c nextflow.config -profile singularity,slurm
+nextflow run tests/modules/coverage_check/test_coverage_check.nf -c nextflow.config -profile singularity,qib
 ```
 **Expected Output:** `✓ SUCCESS: Sample correctly PASSED QC.`
 
@@ -39,7 +39,7 @@ This uses the `fail.config` to set high thresholds (10,000x), expecting the samp
 nextflow run tests/modules/coverage_check/test_coverage_check.nf \
     -c nextflow.config \
     -c tests/modules/coverage_check/fail.config \
-    -profile singularity,slurm
+    -profile singularity,qib
 ```
 **Expected Output:** `✓ SUCCESS: Sample correctly FAILED QC (as expected due to high thresholds).`
 

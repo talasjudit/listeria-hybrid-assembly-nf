@@ -42,13 +42,13 @@ After running the test, verify these outputs:
 export NXF_OFFLINE=true
 
 # Run the test
-nextflow run tests/modules/filtlong/test_filtlong.nf -c nextflow.config -profile singularity,slurm
+nextflow run tests/modules/filtlong/test_filtlong.nf -c nextflow.config -profile singularity,qib
 ```
 
 With resume:
 
 ```bash
-nextflow run tests/modules/filtlong/test_filtlong.nf -c nextflow.config -profile singularity,slurm -resume
+nextflow run tests/modules/filtlong/test_filtlong.nf -c nextflow.config -profile singularity,qib -resume
 ```
 
 ## Verification Checklist
@@ -63,7 +63,7 @@ nextflow run tests/modules/filtlong/test_filtlong.nf -c nextflow.config -profile
 ### Container not found
 
 ```
-Error: could not open image .../singularity_cache/filtlong-0.3.0.sif
+Error: could not open image .../singularity_cache/filtlong-0.3.1.sif
 Solution: 
   - Run from project root, not from test directory
   - Ensure containers are installed: nextflow run main.nf -entry INSTALL -profile singularity

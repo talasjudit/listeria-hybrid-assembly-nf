@@ -13,8 +13,15 @@
 
 nextflow.enable.dsl=2
 
-// Import module
 include { FLYE } from '../../../modules/local/flye'
+
+// Verify required test data is present
+def missing = ['test_nanopore.fastq.gz'].findAll {
+    !file("${launchDir}/tests/data/${it}").exists()
+}
+if (missing) {
+    error "Missing test data: ${missing.join(', ')}\nRun: bash tests/data/download_test_data.sh\nNote: requires internet access - on HPC, run from a login node first."
+}
 
 workflow {
     log.info "Testing FLYE module..."

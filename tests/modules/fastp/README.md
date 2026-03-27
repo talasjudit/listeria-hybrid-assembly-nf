@@ -49,13 +49,13 @@ After running the test, verify these outputs:
 export NXF_OFFLINE=true
 
 # Run the test
-nextflow run tests/modules/fastp/test_fastp.nf -c nextflow.config -profile singularity,slurm
+nextflow run tests/modules/fastp/test_fastp.nf -c nextflow.config -profile singularity,qib
 ```
 
 With resume:
 
 ```bash
-nextflow run tests/modules/fastp/test_fastp.nf -c nextflow.config -profile singularity,slurm -resume
+nextflow run tests/modules/fastp/test_fastp.nf -c nextflow.config -profile singularity,qib -resume
 ```
 
 ## Verification Checklist
