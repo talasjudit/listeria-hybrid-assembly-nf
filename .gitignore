@@ -23,6 +23,11 @@ __pycache__/
 .vscode/
 .idea/
 
+# Claude Code
+.claude/
+
 # Logs
 *.log
 .nextflow.log*
+slurm-*.out
+slurm-*.txt
