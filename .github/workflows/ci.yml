@@ -55,4 +55,4 @@ jobs:
           MODE=${{ matrix.assembly_mode }}
           test -d results_ci/assembly/${MODE}
           test -d results_ci/qc/${MODE}/multiqc
-          test -d results_ci/qc/circularity
+          test -d results_ci/qc/${MODE}/circularity
