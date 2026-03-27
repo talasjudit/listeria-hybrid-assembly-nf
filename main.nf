@@ -3,7 +3,7 @@
 ========================================================================================
     Hybrid Bacterial Genome Assembly Pipeline - Entry Point
 ========================================================================================
-    Github: https://github.com/talasjudit/listeria-hybrid-nf
+    Github: https://github.com/talasjudit/listeria-hybrid-assembly-nf
     
     This is the main entry point for the pipeline. It handles:
     - Help and version display
@@ -48,9 +48,15 @@ if (params.help) {
       --input                Path to samplesheet CSV file
       --outdir               Output directory for results
 
-    Optional Arguments:
-      --use_flye             Run Flye assembly before Unicycler [default: false]
-      --genome_size          Expected genome size for Flye [default: 3m]
+    Assembly Mode:
+      --assembly_mode        Assembly strategy to use [default: unicycler]
+                               unicycler      : Unicycler hybrid (Illumina + Nanopore) [default]
+                               flye_unicycler : Flye → Unicycler (--existing_long_read_assembly)
+                               flye_polypolish: Flye → Polypolish (Illumina polishing)
+      --genome_size          Expected genome size for Flye-based modes [default: 3m]
+      --reference            Reference FASTA for dnadiff QC (flye_polypolish only) [optional]
+
+    QC Arguments:
       --min_read_length      Minimum Nanopore read length [default: 6000]
       --filtlong_keep_percent Keep top N% of Nanopore reads [default: 95]
 
@@ -78,20 +84,27 @@ if (params.help) {
         --input samplesheet.csv \\
         --outdir results
 
-      # 3. With Flye pre-assembly
+      # 3. Flye + Unicycler mode
       nextflow run main.nf -profile singularity,slurm \\
         --input samplesheet.csv \\
         --outdir results \\
-        --use_flye
+        --assembly_mode flye_unicycler
 
-      # 4. Local execution with custom resources
+      # 4. Flye + Polypolish mode with reference comparison
+      nextflow run main.nf -profile singularity,slurm \\
+        --input samplesheet.csv \\
+        --outdir results \\
+        --assembly_mode flye_polypolish \\
+        --reference /path/to/reference.fasta
+
+      # 5. Local execution with custom resources
       nextflow run main.nf -profile singularity,local \\
         --input samplesheet.csv \\
         --outdir results \\
         --max_cpus 8 \\
         --max_memory 32.GB
 
-    For more details, see: https://github.com/talasjudit/listeria-hybrid-nf
+    For more details, see: https://github.com/talasjudit/listeria-hybrid-assembly-nf
     """.stripIndent()
     exit 0
 }

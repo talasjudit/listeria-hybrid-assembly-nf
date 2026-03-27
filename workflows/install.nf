@@ -13,29 +13,38 @@
 
 nextflow.enable.dsl=2
 
-// Container definitions: [filename, url, version_command]
+// Container definitions: [filename, url, version_command, expected_version_string]
+// version_command output is checked for expected_version_string - fails clearly if not found.
+// BWA note: bwa exits 1 with no args and prints to stderr; pipe through grep to capture
+// the version line cleanly without a non-zero exit code.
 
 def containers = [
     // Illumina QC
-    ['fastp-1.0.1.sif', 'oras://ghcr.io/talasjudit/bsup-2555/fastp:1.0.1-1', 'fastp --version'],
+    ['fastp-1.0.1.sif',         'oras://ghcr.io/talasjudit/bsup-2555/fastp:1.0.1-1',                                  'fastp --version',         '1.0.1'],
 
     // MultiQC reporting
-    ['multiqc-1.31.sif', 'oras://ghcr.io/talasjudit/bsup-2555/multiqc:1.31-1', 'multiqc --version'],
+    ['multiqc-1.31.sif',        'oras://ghcr.io/talasjudit/bsup-2555/multiqc:1.31-1',                                 'multiqc --version',       '1.31'],
 
     // Nanopore QC
-    ['porechop_abi-0.5.0.sif', 'oras://ghcr.io/talasjudit/bsup-2555/porechop_abi:0.5.0-1', 'porechop_abi --version'],
-    ['filtlong-0.3.0.sif', 'oras://ghcr.io/talasjudit/bsup-2555/filtlong:0.3.0-1', 'filtlong --version'],
+    ['porechop_abi-0.5.1.sif',  'oras://ghcr.io/talasjudit/bsup-2555/porechop_abi:0.5.1-1',                           'porechop_abi --version',  '0.5.1'],
+    ['filtlong-0.3.1.sif',      'oras://ghcr.io/talasjudit/bsup-2555/filtlong:0.3.1-1',                               'filtlong --version',      '0.3.1'],
 
-    // Coverage check
-    ['seqkit-2.12.0.sif', 'oras://ghcr.io/talasjudit/bsup-2555/seqkit:2.12.0-1', 'seqkit version'],
+    // Coverage + circularity check
+    ['seqkit-2.12.0.sif',       'oras://ghcr.io/talasjudit/bsup-2555/seqkit:2.12.0-1',                                'seqkit version',          '2.12.0'],
 
     // Assembly
-    ['flye-2.9.6.sif', 'oras://ghcr.io/talasjudit/bsup-2555/flye:2.9.6-1', 'flye --version'],
-    ['unicycler-0.5.1.sif', 'docker://quay.io/biocontainers/unicycler:0.5.1--py39h746d604_5', 'unicycler --version'],
+    ['flye-2.9.6.sif',          'oras://ghcr.io/talasjudit/bsup-2555/flye:2.9.6-1',                                   'flye --version',          '2.9.6'],
+    ['unicycler-0.5.1.sif',     'docker://quay.io/biocontainers/unicycler:0.5.1--py39h746d604_5',                     'unicycler --version',     '0.5.1'],
+    ['bwa-0.7.19.sif',          'docker://quay.io/biocontainers/bwa:0.7.19--h577a1d6_1',                              'bwa',                     '0.7.19'],
+    ['polypolish_0.6.1.sif',    'docker://quay.io/biocontainers/polypolish:0.6.1--h3ab6199_0',                        'polypolish --version',    '0.6.1'],
+
+    // Post-assembly processing
+    ['dnaapler-1.3.0.sif',      'docker://quay.io/biocontainers/dnaapler:1.3.0--pyhdfd78af_0',                        'dnaapler --version',      '1.3.0'],
+    ['mummer4-4.0.1.sif',       'docker://quay.io/biocontainers/mummer4:4.0.1--pl5321h9948957_0',                     'dnadiff --version',       '1.3'],
 
     // Assembly QC
-    ['checkm2-1.1.0.sif', 'oras://ghcr.io/talasjudit/bsup-2555/checkm2:1.1.0-1', 'checkm2 --version'],
-    ['quast-5.3.0.sif', 'oras://ghcr.io/talasjudit/bsup-2555/quast:5.3.0-1', 'quast.py --version']
+    ['checkm2-1.1.0.sif',       'oras://ghcr.io/talasjudit/bsup-2555/checkm2:1.1.0-1',                               'checkm2 --version',       '1.1.0'],
+    ['quast-5.3.0.sif',         'oras://ghcr.io/talasjudit/bsup-2555/quast:5.3.0-1',                                  'quast.py --version',      '5.3.0'],
 ]
 
 /*
@@ -47,22 +56,28 @@ def containers = [
 process DOWNLOAD_CONTAINER {
     tag "$filename"
     storeDir params.singularity_cachedir
-    
+
     input:
-    tuple val(filename), val(url), val(version_cmd)
-    
+    tuple val(filename), val(url), val(version_cmd), val(expected_version)
+
     output:
     path filename
-    
+
     script:
     """
-    # Download the container
     singularity pull ${filename} ${url}
-    
-    # Verify container works by running version command
+
     echo "Verifying ${filename}..."
-    singularity exec ${filename} ${version_cmd}
-    echo "✓ ${filename} verified successfully"
+    VERSION_OUTPUT=\$(singularity exec ./${filename} sh -c "${version_cmd}" 2>&1 | grep -v "^WARNING:" || true)
+    echo "\${VERSION_OUTPUT}"
+
+    if ! echo "\${VERSION_OUTPUT}" | grep -q "${expected_version}"; then
+        echo "ERROR: Version verification failed for ${filename}"
+        echo "Expected to find: ${expected_version}"
+        echo "Got: \${VERSION_OUTPUT}"
+        exit 1
+    fi
+    echo "OK: ${filename} contains expected version ${expected_version}"
     """
 }
 
@@ -74,88 +89,40 @@ process DOWNLOAD_CONTAINER {
 
 workflow INSTALL {
 
-    /*
-     * Print header with information
-     */
     log.info """
+    Container Installation Workflow
+    ================================
+    Cache directory : ${params.singularity_cachedir}
+    Containers      : ${containers.size()}
 
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║           Container Installation Workflow                     ║
-    ║               Hybrid Assembly Pipeline                        ║
-    ╚═══════════════════════════════════════════════════════════════╝
-
-    Cache directory: ${params.singularity_cachedir}
-    Containers to download: ${containers.size()}
-
-    Note: This workflow uses storeDir, so already-downloaded containers
-    will be automatically skipped. Use -resume to skip completed downloads
-    if the workflow was interrupted.
-
+    Already-downloaded containers are skipped automatically (storeDir).
+    Use -resume if a previous run was interrupted.
     """.stripIndent()
 
-    /*
-     * Create cache directory if it doesn't exist
-     */
     file(params.singularity_cachedir).mkdirs()
 
-    /*
-     * Convert container list to channel
-     * Each element is a tuple: [filename, url, version_cmd]
-     */
     ch_containers = Channel.fromList(
         containers.collect { item ->
-            tuple(item[0], item[1], item[2])
+            tuple(item[0], item[1], item[2], item[3])
         }
     )
 
-    /*
-     * Download all containers
-     */
     DOWNLOAD_CONTAINER(ch_containers)
 
-    /*
-     * Collect all downloads and print summary
-     */
     DOWNLOAD_CONTAINER.out
         .collect()
         .subscribe { files ->
-            println """
-
-            ╔═══════════════════════════════════════════════════════════════╗
-            ║              Installation Complete!                           ║
-            ╚═══════════════════════════════════════════════════════════════╝
-
-            Successfully processed ${files.size()} containers:
-            """.stripIndent()
-
-            files.each { file ->
-                // Get file size
-                def size = file.size()
-                def sizeStr = size > 1073741824 ? "${String.format('%.2f', size / 1073741824)} GB" :
-                              size > 1048576 ? "${String.format('%.2f', size / 1048576)} MB" :
-                              "${String.format('%.2f', size / 1024)} KB"
-                println "  ✓ ${file.name.padRight(30)} (${sizeStr})"
+            def lines = ["", "Installation complete. ${files.size()} containers verified:", ""]
+            files.each { f ->
+                def size  = f.size()
+                def sizeStr = size > 1073741824 ? "${String.format('%.1f', size / 1073741824)} GB" :
+                              size > 1048576    ? "${String.format('%.1f', size / 1048576)} MB" :
+                                                  "${String.format('%.1f', size / 1024)} KB"
+                lines << "  ${f.name.padRight(35)} ${sizeStr}"
             }
-
-            println """
-
-            Cache directory: ${params.singularity_cachedir}
-
-            Next steps:
-            1. Verify containers with: ls -lh ${params.singularity_cachedir}
-            2. Run the pipeline with: nextflow run main.nf -profile singularity,slurm --input samplesheet.csv
-
-            """.stripIndent()
+            lines << ""
+            lines << "Next step: nextflow run main.nf -profile singularity,qib --input samplesheet.csv"
+            lines << ""
+            println lines.join('\n')
         }
 }
-
-/*
-========================================================================================
-    COMPLETION HANDLERS
-========================================================================================
-*/
-
-// Note: Completion handler moved to workflows/main.nf
-// This file only defines the INSTALL workflow
-
-// Note: Error handler moved to workflows/main.nf
