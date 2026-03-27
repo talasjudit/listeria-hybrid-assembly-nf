@@ -1,469 +1,221 @@
 # Output Documentation
 
-This document describes all output files and directories produced by the hybrid assembly pipeline.
-
-## Quick Reference
-
-**Most important outputs:**
-- 🔬 **Final assemblies:** `results/unicycler/`
-- 📊 **QC report (start here):** `results/multiqc/multiqc_report.html`
-- ✅ **Completeness:** `results/checkm2/`
-- 📈 **Statistics:** `results/quast/`
+This document describes the files and directories produced by the pipeline.
 
 ## Output Directory Structure
 
+Assembly-mode-dependent outputs are organised under a `{assembly_mode}/` subdirectory so that results from different modes coexist safely in the same `--outdir`. Re-running with a different mode and `-resume` will skip all preprocessing steps (reads are unchanged) and only re-run the assembly and downstream steps.
+
 ```
 results/
-├── fastp/                      # Illumina QC (FastP)
-│   ├── SAMPLE_R1_trimmed.fastq.gz
-│   ├── SAMPLE_R2_trimmed.fastq.gz
-│   ├── SAMPLE.json
-│   └── SAMPLE.html
-├── porechop/                   # Nanopore adapter removal
-│   ├── SAMPLE_porechop.fastq.gz
-│   └── SAMPLE_porechop.log
-├── filtlong/                   # Nanopore quality filtering
-│   ├── SAMPLE_filtlong.fastq.gz
-│   └── SAMPLE_filtlong.log
-├── flye/                       # Long-read assembly (if --use_flye)
-│   ├── SAMPLE_flye.fasta
-│   ├── SAMPLE_flye/
-│   │   └── assembly_info.txt
-│   └── SAMPLE_flye.log
-├── unicycler/                  # ⭐ FINAL ASSEMBLIES
-│   ├── SAMPLE_unicycler.fasta  # ← THIS IS YOUR ASSEMBLY
-│   ├── SAMPLE_unicycler/
-│   │   └── assembly.gfa
-│   └── SAMPLE_unicycler.log
-├── checkm2/                    # Assembly completeness
-│   ├── SAMPLE_checkm2/
-│   │   └── quality_report.tsv  # ← Completeness & contamination
-│   └── SAMPLE_checkm2.log
-├── quast/                      # Assembly statistics
-│   ├── SAMPLE_quast/
-│   │   ├── report.tsv          # ← Assembly metrics
-│   │   └── report.html
-│   └── SAMPLE_quast.log
-├── multiqc/                    # ⭐ AGGREGATED REPORT
-│   ├── multiqc_report.html     # ← START HERE
-│   └── multiqc_data/
-└── pipeline_info/              # Execution reports
-    ├── execution_timeline.html
-    ├── execution_report.html
-    ├── execution_trace.txt
-    └── pipeline_dag.svg
+├── qc/
+│   ├── fastp/                          # Illumina QC reports (per sample, all modes)
+│   ├── porechop/                       # Nanopore adapter trimming logs (per sample, all modes)
+│   ├── filtlong/                       # Nanopore quality filtering logs (per sample, all modes)
+│   ├── coverage/                       # Coverage gate reports (per sample, all modes)
+│   ├── unicycler/
+│   │   ├── circularity/                # Assembly circularity reports (unicycler mode)
+│   │   ├── checkm2/                    # Assembly completeness (unicycler mode)
+│   │   ├── quast/                      # Assembly statistics (unicycler mode)
+│   │   └── multiqc/                    # Aggregated QC report (unicycler mode)
+│   ├── flye_unicycler/
+│   │   ├── circularity/                # Assembly circularity reports (flye_unicycler mode)
+│   │   ├── checkm2/
+│   │   ├── quast/
+│   │   └── multiqc/
+│   └── flye_polypolish/
+│       ├── circularity/                # Assembly circularity reports (flye_polypolish mode)
+│       ├── dnadiff/                    # Reference comparison (--reference only)
+│       ├── checkm2/
+│       ├── quast/
+│       └── multiqc/
+├── assembly/
+│   ├── unicycler/
+│   │   ├── unicycler/                  # Unicycler graph + log (unicycler mode)
+│   │   └── SAMPLE_dnaapler.fasta       # Final assembly (unicycler mode)
+│   ├── flye_unicycler/
+│   │   ├── flye/                       # Flye info + log
+│   │   ├── unicycler/                  # Unicycler graph + log
+│   │   └── SAMPLE_dnaapler.fasta       # Final assembly (flye_unicycler mode)
+│   └── flye_polypolish/
+│       ├── flye/                       # Flye info + log
+│       ├── polypolish/                 # Polypolish log
+│       └── SAMPLE_dnaapler.fasta       # Final assembly (flye_polypolish mode)
+└── pipeline_info/                      # Nextflow execution reports
 ```
 
-## Detailed Output Description
+The final genome assembly for each sample is `results/assembly/{assembly_mode}/SAMPLE_dnaapler.fasta`.
+Intermediate assembly FASTAs are not published; they remain in the Nextflow work directory if needed.
 
-### 1. FastP - Illumina QC
+## Output Descriptions
 
-**Directory:** `results/fastp/`
+### FastP - Illumina QC
 
-**Files per sample:**
-- `SAMPLE_R1_trimmed.fastq.gz` - Trimmed forward reads
-- `SAMPLE_R2_trimmed.fastq.gz` - Trimmed reverse reads
-- `SAMPLE.json` - QC metrics (JSON format)
-- `SAMPLE.html` - Interactive QC report
+**Directory:** `results/qc/fastp/`
 
-**What to check:**
-- **Total reads:** Should have sufficient data (millions of reads)
-- **Passing filter:** >95% is good
-- **Adapter content:** Should be low after trimming (<1%)
-- **Quality scores:** Should be Q30+ for most bases
+One JSON and one HTML report per sample. Open the HTML in a browser to review read quality, adapter content, and filtering statistics. The JSON is also collected by MultiQC.
 
-**Example JSON metrics:**
-```json
-{
-    "summary": {
-        "before_filtering": {
-            "total_reads": 10000000,
-            "total_bases": 1500000000
-        },
-        "after_filtering": {
-            "total_reads": 9800000,  // 98% passed
-            "total_bases": 1450000000
-        }
-    }
-}
-```
+### Porechop ABI - Nanopore Adapter Trimming
 
-**When to worry:**
-- <90% reads passing filter
-- High adapter contamination after filtering
-- Very low quality scores
+**Directory:** `results/qc/porechop/`
 
-### 2. Porechop - Nanopore Adapter Removal
+One log file per sample showing the number of reads processed and adapters detected and removed. Also collected by MultiQC.
 
-**Directory:** `results/porechop/`
+### Filtlong - Nanopore Quality Filtering
 
-**Files per sample:**
-- `SAMPLE_porechop.fastq.gz` - Adapter-trimmed Nanopore reads
-- `SAMPLE_porechop.log` - Adapter detection and removal log
+**Directory:** `results/qc/filtlong/`
 
-**What to check in log:**
-- Number of reads processed
-- Adapters found and removed
-- Chimeric reads removed
+One log file per sample showing filtering statistics (reads kept, bases retained). Also collected by MultiQC.
 
-**Typical log contents:**
-```
-Total reads: 50000
-Reads with adapters: 45000 (90%)
-Chimeric reads removed: 500 (1%)
-Final reads: 49500
-```
+### Coverage Check
 
-### 3. Filtlong - Nanopore Quality Filtering
+**Directory:** `results/qc/coverage/`
 
-**Directory:** `results/filtlong/`
+One text report per sample stating whether the sample passed or failed the coverage thresholds (default: 30x Illumina, 20x Nanopore). Samples that fail are excluded from assembly with a warning in the pipeline log.
 
-**Files per sample:**
-- `SAMPLE_filtlong.fastq.gz` - Quality-filtered Nanopore reads
-- `SAMPLE_filtlong.log` - Filtering statistics
+### Circularity Check
 
-**What to check in log:**
-- Total bases kept
-- Mean read length after filtering
-- Percentage of reads kept
+**Directory:** `results/qc/{assembly_mode}/circularity/`
 
-**Settings:**
-- Default keeps top 95% of reads by quality
-- Minimum read length: 6000 bp (default)
+Reports produced depend on the assembly mode:
 
-### 4. Flye - Long-Read Assembly
+| Mode | Reports per sample |
+|------|--------------------|
+| `unicycler` | `SAMPLE_unicycler_circularity.tsv` |
+| `flye_unicycler` | `SAMPLE_flye_draft_circularity.tsv` + `SAMPLE_unicycler_circularity.tsv` |
+| `flye_polypolish` | `SAMPLE_flye_draft_circularity.tsv` |
 
-**Directory:** `results/flye/` (only if `--use_flye` is set)
+Each report is a TSV with columns `sample`, `source`, `contig`, `length_bp`, `circular` — one row per contig. The final line is a comment (`# Status: PASSED` or `# Status: WARNING`) indicating whether any large contig (>= 500 kb) is linear. The TSV format is human-readable and compatible with MultiQC custom content.
 
-**Files per sample:**
-- `SAMPLE_flye.fasta` - Flye long-read assembly
-- `SAMPLE_flye/assembly_info.txt` - Contig information
+For `flye_unicycler` mode, having both reports lets you see whether Flye circularised the genome and whether Unicycler preserved that circularity after polishing.
+
+Any WARNING is also printed to the pipeline log at runtime.
+
+### Flye - Long-Read Assembly (info and log)
+
+**Directory:** `results/assembly/{assembly_mode}/flye/`
+
+Present only in `flye_unicycler` and `flye_polypolish` modes.
+
+Files per sample:
+- `SAMPLE_flye_info.txt` - Flye contig table: length, coverage, circularity (Y/N), repeat status
 - `SAMPLE_flye.log` - Assembly log
 
-**Assembly info format:**
-```
-#seq_name    length    cov    circ    repeat    ...
-contig_1     2950000   45.2   Y       N         ...
-contig_2     85000     40.1   N       N         ...
-```
+The Flye FASTA itself is not published (it is an intermediate file used by Unicycler or Polypolish). It remains in the Nextflow work directory.
 
-**Key metrics:**
-- **circ:** Y = circular contig (complete replicon)
-- **cov:** Coverage depth
-- **repeat:** Y = identified as repeat region
+### Unicycler - Assembly Graph and Log
 
-**What to check:**
-- Largest contig should be close to expected chromosome size
-- Check for circular contigs (complete chromosomes)
-- Coverage should be roughly uniform
+**Directory:** `results/assembly/{assembly_mode}/unicycler/`
 
-### 5. Unicycler - Final Assembly
+Present only in `unicycler` and `flye_unicycler` modes.
 
-**Directory:** `results/unicycler/` ⭐ **MAIN OUTPUT**
+Files per sample:
+- `SAMPLE_unicycler_graph.gfa` - Assembly graph (useful for inspecting assembly structure)
+- `SAMPLE_unicycler.log` - Assembly log
 
-**Files per sample:**
-- `SAMPLE_unicycler.fasta` - **Final hybrid assembly**
-- `SAMPLE_unicycler/assembly.gfa` - Assembly graph
-- `SAMPLE_unicycler.log` - Detailed assembly log
+The Unicycler FASTA is not published here because it undergoes further processing by dnaapler. The final FASTA is at `results/assembly/{assembly_mode}/SAMPLE_dnaapler.fasta`.
 
-**Assembly FASTA:**
-This is your final genome assembly. Use this file for:
-- Genome annotation
-- Comparative genomics
-- Submission to databases
-- Further analyses
+### Polypolish - Polishing Log
 
-**Example FASTA:**
-```
->1 length=2945000 depth=1.00x circular=true
-ATGCATGCATGC...
->2 length=85000 depth=1.02x circular=true
-GCTAGCTAGCTA...
-```
+**Directory:** `results/assembly/flye_polypolish/polypolish/`
 
-**FASTA header information:**
-- `length=` - Contig length in base pairs
-- `depth=` - Relative coverage depth
-- `circular=` - Whether contig circularized
+Present only in `flye_polypolish` mode.
 
-**What to check:**
-- Number of contigs (fewer is better)
-- Largest contig (should be chromosome-sized)
-- Circular contigs (complete replicons)
-- Total assembly size (should match expected genome size)
+Files per sample:
+- `SAMPLE_polypolish.log` - Polishing log
 
-**Assembly log:**
-Contains detailed information about:
-- Bridging operations
-- Graph simplification
-- Polish rounds
-- Final statistics
+The Polypolish FASTA is not published here; the final FASTA is at `results/assembly/flye_polypolish/SAMPLE_dnaapler.fasta`.
 
-### 6. CheckM2 - Assembly Completeness
+### dnaapler - Final Assembly
 
-**Directory:** `results/checkm2/`
+**Directory:** `results/assembly/{assembly_mode}/`
 
-**Files per sample:**
-- `SAMPLE_checkm2/quality_report.tsv` - Completeness metrics
+The final assembly for all modes, reoriented so the chromosome starts at the dnaA gene. This is the file to use for all downstream analysis.
+
+Files per sample:
+- `SAMPLE_dnaapler.fasta` - Final reoriented assembly
+- `SAMPLE_dnaapler.log` - Reorientation log
+
+### CheckM2 - Assembly Completeness
+
+**Directory:** `results/qc/{assembly_mode}/checkm2/`
+
+Files per sample:
+- `SAMPLE_checkm2_summary.tsv` - Completeness and contamination estimates
 - `SAMPLE_checkm2.log` - Analysis log
 
-**Quality report format:**
-```
-Name          Completeness    Contamination    ...
-SAMPLE        98.5            0.8              ...
-```
+Key metrics:
 
-**Key metrics:**
+| Metric | Good | Acceptable | Problematic |
+|--------|------|------------|-------------|
+| Completeness | >95% | 90-95% | <80% |
+| Contamination | <2% | 2-5% | >5% |
 
-**Completeness:**
-- >95% = Excellent
-- 90-95% = Good
-- 80-90% = Acceptable
-- <80% = Problematic
+### QUAST - Assembly Statistics
 
-**Contamination:**
-- <2% = Excellent
-- 2-5% = Acceptable
-- >5% = Problematic
+**Directory:** `results/qc/{assembly_mode}/quast/`
 
-**Combined quality score:**
-- `Completeness - 5*Contamination`
-- >90 = High quality
-- 50-90 = Medium quality
-- <50 = Low quality
-
-**What to do if quality is low:**
-- Check sequencing coverage
-- Review input data quality
-- Check for sample contamination
-- Consider resequencing
-
-### 7. QUAST - Assembly Statistics
-
-**Directory:** `results/quast/`
-
-**Files per sample:**
-- `SAMPLE_quast/report.tsv` - Assembly statistics (TSV)
+Files per sample:
+- `SAMPLE_quast_summary.tsv` - Assembly statistics table
 - `SAMPLE_quast/report.html` - Interactive report
+- `SAMPLE_quast/icarus.html` - Icarus contig viewer
 - `SAMPLE_quast.log` - Analysis log
 
-**Key metrics in report.tsv:**
+Key metrics to check:
 
-| Metric | Description | Good Value |
-|--------|-------------|------------|
-| # contigs | Number of contigs | <50 for bacteria |
-| Total length | Assembly size | Match expected genome |
-| N50 | Half assembly in contigs ≥ this size | >100 Kb |
-| L50 | Number of contigs in N50 | <10 |
-| Largest contig | Biggest contig size | ~Chromosome size |
-| GC (%) | GC content | Match expected |
+| Metric | Description |
+|--------|-------------|
+| # contigs | Number of contigs (fewer is better) |
+| Total length | Assembly size (should match expected genome size) |
+| N50 | Half the assembly is in contigs at least this size |
+| Largest contig | Should be close to chromosome size |
+| GC (%) | Should match the expected value for the organism |
 
-**Example report:**
-```
-Metric                Value
-# contigs             15
-Total length          2,945,000
-N50                   450,000
-L50                   3
-Largest contig        2,100,000
-GC (%)                37.8
-```
+### dnadiff - Reference Comparison and Polishing Summary
 
-**Interpreting results:**
+**Directory:** `results/qc/flye_polypolish/dnadiff/`
 
-**Excellent assembly:**
-- 1-20 contigs
-- N50 >500 Kb
-- Largest contig >2 Mb
+Present only when `--assembly_mode flye_polypolish` and `--reference` are both provided. dnadiff runs twice, comparing both the Flye draft and the Polypolish output against the reference.
 
-**Good assembly:**
-- <50 contigs
-- N50 >100 Kb
-- Total length matches expected
+Files per sample:
+- `SAMPLE_flye_draft.report` - MUMmer dnadiff report (Flye draft vs reference)
+- `SAMPLE_flye_draft.delta` - Alignment delta file
+- `SAMPLE_flye_draft_dnadiff_mqc.tsv` - MultiQC table (identity, aligned %, SNPs, indels)
+- `SAMPLE_polypolish.report` - MUMmer dnadiff report (Polypolish output vs reference)
+- `SAMPLE_polypolish.delta` - Alignment delta file
+- `SAMPLE_polypolish_dnadiff_mqc.tsv` - MultiQC table (identity, aligned %, SNPs, indels)
+- `SAMPLE_polishing_summary.tsv` - Before/after comparison with IMPROVED / UNCHANGED / WORSE status
 
-**Poor assembly:**
-- >100 contigs
-- N50 <50 Kb
-- Fragmented
+The polishing summary compares total variant counts (SNPs + indels) between the draft and polished assemblies. IMPROVED means Polypolish reduced variants relative to the reference.
 
-### 8. MultiQC - Aggregated Report
+### MultiQC - Aggregated Report
 
-**Directory:** `results/multiqc/` ⭐ **START HERE**
+**Directory:** `results/qc/{assembly_mode}/multiqc/`
 
-**Files:**
-- `multiqc_report.html` - **Interactive aggregated report**
-- `multiqc_data/` - Raw data and plots
+- `multiqc_report.html` - Interactive report aggregating results from: fastp, Filtlong, QUAST, CheckM2, circularity check, dnadiff (x2, flye_polypolish only), and polishing summary (flye_polypolish only). Open this first.
+- `multiqc_report_data/` - Raw data behind the report
 
-**What's included:**
-- Summary of all QC metrics
-- Plots comparing all samples
-- Links to individual reports
-- Assembly quality overview
-
-**How to use:**
-1. Open `multiqc_report.html` in web browser
-2. Review "General Statistics" table
-3. Check individual tool sections
-4. Compare samples side-by-side
-5. Identify outliers or problems
-
-**Key sections:**
-- **FastP:** Read quality and filtering
-- **QUAST:** Assembly statistics
-- **CheckM2:** Completeness (if integrated)
-
-### 9. Pipeline Info - Execution Reports
+### Pipeline Info
 
 **Directory:** `results/pipeline_info/`
 
-**Files:**
+Nextflow execution reports generated automatically:
 - `execution_timeline.html` - Timeline of all processes
 - `execution_report.html` - Resource usage summary
 - `execution_trace.txt` - Detailed trace log
 - `pipeline_dag.svg` - Workflow diagram
 
-**Timeline report:**
-- Shows when each process started/finished
-- Identifies bottlenecks
-- Useful for optimization
-
-**Execution report:**
-- Resource usage statistics
-- CPU and memory utilization
-- Process duration
-- Success/failure status
-
-**Trace file:**
-Raw text file with all execution details:
-```
-task_id    status    duration    cpus    memory    ...
-1          COMPLETED 10m         6       15.2 GB   ...
-```
-
-## Using the Outputs
-
-### For Genome Annotation
-
-Use the final assembly:
-```bash
-# Prokka annotation
-prokka results/unicycler/SAMPLE_unicycler.fasta \
-    --outdir annotation/ \
-    --prefix SAMPLE
-
-# PGAP annotation
-# Submit SAMPLE_unicycler.fasta to NCBI PGAP
-```
-
-### For Quality Assessment
-
-Check these three files:
-1. `multiqc/multiqc_report.html` - Overall summary
-2. `checkm2/SAMPLE_checkm2/quality_report.tsv` - Completeness
-3. `quast/SAMPLE_quast/report.tsv` - Statistics
-
-### For Database Submission
-
-**Required files:**
-- Assembly: `unicycler/SAMPLE_unicycler.fasta`
-- Raw reads: Original FASTQ files
-- QC reports: `multiqc/multiqc_report.html`
-
-**NCBI GenBank submission:**
-1. Clean contig names if needed
-2. Add structured comment with assembly method
-3. Include QC metrics
-
-### For Comparative Genomics
-
-**Use assemblies for:**
-- Pan-genome analysis
-- SNP calling
-- Phylogenetic analysis
-- Genome comparison
-
-**Example tools:**
-- Roary (pan-genome)
-- Snippy (SNP calling)
-- Mauve (alignment)
-- BLAST (comparison)
-
 ## Quality Control Checklist
 
-After pipeline completion, verify:
+After the pipeline completes:
 
-- [ ] MultiQC report generated successfully
-- [ ] All samples present in output
-- [ ] CheckM2 completeness >90% for all samples
-- [ ] CheckM2 contamination <5% for all samples
-- [ ] QUAST N50 >50 Kb
-- [ ] Assembly size matches expected genome size (±10%)
-- [ ] No failed processes in execution report
-
-## Troubleshooting Outputs
-
-### Missing output files
-
-```
-Check:
-- Process completed successfully
-- Check pipeline_info/execution_trace.txt
-- Look for errors in .nextflow.log
-```
-
-### Empty assembly files
-
-```
-Cause: Assembly failed
-Check:
-- Input data quality and coverage
-- Process logs in work/ directory
-- Resource allocation
-```
-
-### Very fragmented assembly
-
-```
-Cause: Insufficient long-read data or quality
-Solution:
-- Check Nanopore coverage (need 50x+)
-- Try --use_flye mode
-- Check filtlong parameters
-```
-
-### High contamination
-
-```
-Cause: Sample contamination or mixed species
-Check:
-- Sample preparation
-- FastP reports for unusual patterns
-- Consider decontamination tools
-```
-
-## Best Practices
-
-1. **Always check MultiQC first**
-   - Gives overview of all samples
-   - Easy to spot outliers
-
-2. **Verify completeness and contamination**
-   - Essential quality metrics
-   - Determines if assembly is usable
-
-3. **Compare assembly size to expected**
-   - Too large = contamination or plasmids
-   - Too small = incomplete assembly
-
-4. **Keep all outputs**
-   - Useful for troubleshooting
-   - Required for methods section
-   - Archive for reproducibility
-
-5. **Document quality metrics**
-   - Record in lab notebook
-   - Include in publications
-   - Share with collaborators
+- All samples present in `results/assembly/{assembly_mode}/` as `SAMPLE_dnaapler.fasta`
+- All circularity reports in `results/qc/{assembly_mode}/circularity/` show `# Status: PASSED`
+- CheckM2 completeness >90% for all samples
+- CheckM2 contamination <5% for all samples
+- QUAST N50 and total length consistent with expected genome size
+- For `flye_polypolish` with `--reference`: polishing summary shows IMPROVED for all samples
+- No failed processes in `results/pipeline_info/execution_trace.txt`
 
 ## See Also
 

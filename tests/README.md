@@ -1,311 +1,153 @@
-# Testing Documentation
-
-## Overview
-
-This directory contains unit tests for individual modules and integration tests for the full pipeline. A comprehensive testing strategy ensures the pipeline works correctly and helps catch regressions during development.
+# Tests
 
 ## Directory Structure
 
 ```
 tests/
-├── README.md               # This file
-├── modules/                # Unit tests for each process
+├── modules/                        # Unit tests for individual processes
 │   ├── fastp/
 │   ├── porechop_abi/
 │   ├── filtlong/
+│   ├── coverage_check/             (+ fail.config for threshold test)
 │   ├── flye/
 │   ├── unicycler/
 │   ├── checkm2/
 │   ├── quast/
-│   └── coverage_check/
-├── subworkflows/           # Subworkflow tests
-│   ├── assembly_hybrid/
+│   ├── bwa_mem/
+│   ├── polypolish/
+│   ├── dnaapler/
+│   ├── dnadiff/
+│   ├── circularity_check/
+│   └── polishing_summary/
+├── subworkflows/
 │   ├── input_check/
+│   ├── qc_nanopore/
 │   ├── qc_assembly/
-│   └── qc_nanopore/
-├── integration/            # Full pipeline integration tests
+│   ├── assembly_unicycler/         (requires raw reads)
+│   ├── assembly_flye_unicycler/    (requires raw reads)
+│   ├── assembly_polypolish/        (committed data only)
+│   └── assembly_hybrid/            STALE - do not run
+├── integration/
 │   └── test_full_pipeline.nf
-└── data/                   # Test data
-    ├── samplesheet_test.csv
-    └── README.md
+└── data/                           see tests/data/README.md
 ```
 
-## Testing Strategy
+## Test Data Requirements
 
-### 1. Unit Tests (Module Level)
+Tests are split by data availability:
 
-Each process module has its own test workflow that:
-- Runs the module in isolation
-- Uses small test datasets
-- Verifies expected outputs are created
-- Checks output files are valid and non-empty
+**Committed data only (run any time):**
+- `bwa_mem`, `polypolish` (via BWA_MEM chain), `dnaapler`, `dnadiff`, `circularity_check`, `polishing_summary`
+- `assembly_polypolish` subworkflow
+- Uses: `test_flye_assembly.fasta`, `test_flye_info.txt`, `test_unicycler_assembly.fasta`,
+  `test_R1_small.fastq.gz`, `test_R2_small.fastq.gz`, `test_flye_draft.report`, `test_polypolish.report`
 
-**When to run:** During module development and after modifications
-
-### 2. Integration Tests (Full Pipeline)
-
-Integration tests run the entire pipeline to ensure:
-- All modules work together correctly
-- Data flows between processes as expected
-- Final outputs meet quality thresholds
-- Pipeline completes without errors
-
-**When to run:** Before merging changes, before releases
-
-### 3. Stub Tests
-
-Nextflow's stub feature allows testing workflow logic without running actual commands:
-- Fast execution (seconds instead of hours)
-- Tests channel operations and workflow structure
-- Useful for CI/CD pipelines
-
-**When to run:** During workflow development, in CI/CD
+**Require raw reads staged to `tests/data/`:**
+- `fastp`, `porechop_abi`, `filtlong`, `flye`, `unicycler`, `coverage_check`
+- `qc_nanopore`, `assembly_unicycler`, `assembly_flye_unicycler`
+- Copy from `/qib/scratch/users/wel24kif/Listeria_test/` before running:
+  ```bash
+  cp /qib/scratch/users/wel24kif/Listeria_test/BL07-034.fastq.gz tests/data/test_nanopore.fastq.gz
+  cp /qib/scratch/.../PID-2142-BL07-034_S703_R1_001.fastq.gz tests/data/test_R1.fastq.gz
+  cp /qib/scratch/.../PID-2142-BL07-034_S703_R2_001.fastq.gz tests/data/test_R2.fastq.gz
+  ```
 
 ## Running Tests
 
-### Prerequisites
+All commands run from the project root with `-profile singularity,qib`.
+
+### Modules (committed data)
 
 ```bash
-# 1. Install containers (if not already done)
-nextflow run workflows/install.nf --singularity_cachedir ./singularity_cache
+nextflow run tests/modules/bwa_mem/test_bwa_mem.nf \
+    -c nextflow.config -profile singularity,qib
 
-# 2. Ensure you have test data (see tests/data/README.md)
+nextflow run tests/modules/polypolish/test_polypolish.nf \
+    -c nextflow.config -profile singularity,qib
+
+nextflow run tests/modules/dnaapler/test_dnaapler.nf \
+    -c nextflow.config -profile singularity,qib
+
+nextflow run tests/modules/dnadiff/test_dnadiff.nf \
+    -c nextflow.config -profile singularity,qib
+
+nextflow run tests/modules/circularity_check/test_circularity_check.nf \
+    -c nextflow.config -profile singularity,qib
+
+nextflow run tests/modules/polishing_summary/test_polishing_summary.nf \
+    -c nextflow.config -profile singularity,qib
 ```
 
-### Unit Tests
-
-Test a specific module:
+### Modules (require raw reads)
 
 ```bash
-# Test fastp module
-cd tests/modules/fastp
-nextflow run test_fastp.nf -profile test,singularity
+nextflow run tests/modules/fastp/test_fastp.nf \
+    -c nextflow.config -profile singularity,qib
 
-# Or from project root
-nextflow run tests/modules/fastp/test_fastp.nf -profile test,singularity
+nextflow run tests/modules/flye/test_flye.nf \
+    -c nextflow.config -profile singularity,qib
+
+nextflow run tests/modules/unicycler/test_unicycler.nf \
+    -c nextflow.config -profile singularity,qib
+
+nextflow run tests/modules/coverage_check/test_coverage_check.nf \
+    -c nextflow.config -profile singularity,qib
+
+# Coverage FAIL case (expects failure at high threshold):
+nextflow run tests/modules/coverage_check/test_coverage_check.nf \
+    -c nextflow.config -c tests/modules/coverage_check/fail.config \
+    -profile singularity,qib
 ```
 
-Test all modules:
+### Subworkflows
 
 ```bash
-# Create a test runner script
-./run_all_module_tests.sh
+# Committed data only:
+nextflow run tests/subworkflows/assembly_polypolish/test_assembly_polypolish.nf \
+    -c nextflow.config -profile singularity,qib
+
+# Require raw reads:
+nextflow run tests/subworkflows/assembly_unicycler/test_assembly_unicycler.nf \
+    -c nextflow.config -profile singularity,qib
+
+nextflow run tests/subworkflows/assembly_flye_unicycler/test_assembly_flye_unicycler.nf \
+    -c nextflow.config -profile singularity,qib
 ```
 
-### Integration Tests
+### Stub run (no data or containers required)
 
-Run full pipeline with test data:
+Validates pipeline structure and channel logic for all 3 modes. Processes after
+`COVERAGE_CHECK` will show `-` (not run) because the stub produces an empty report
+file that the branch logic cannot match — this is expected and correct.
 
 ```bash
-nextflow run tests/integration/test_full_pipeline.nf -profile test,singularity
+for mode in unicycler flye_unicycler flye_polypolish; do
+    nextflow run main.nf -stub -profile singularity,qib \
+        --assembly_mode $mode \
+        --input tests/data/samplesheet_test.csv \
+        --outdir results_stub_${mode}
+done
 ```
 
-Or use the test config directly with main pipeline:
+## Test Status
 
-```bash
-nextflow run main.nf -profile test,singularity
-```
-
-### Stub Tests
-
-Test workflow structure without executing processes:
-
-```bash
-nextflow run main.nf -profile test -stub-run
-```
-
-## Test Data
-
-### Requirements
-
-Test data should be:
-- **Small:** Complete in <30 minutes
-- **Representative:** Real bacterial genome data (or realistic synthetic)
-- **Complete:** Include both Illumina and Nanopore reads
-- **Valid:** Should produce valid assemblies
-
-### Recommended Test Data
-
-For a bacterial genome (e.g., E. coli or Listeria):
-
-**Illumina reads:**
-- ~10,000 paired reads (20,000 total)
-- ~10-20x coverage
-- Files: `test_R1.fastq.gz`, `test_R2.fastq.gz`
-
-**Nanopore reads:**
-- ~500 long reads
-- ~20-30x coverage
-- File: `test_nanopore.fastq.gz`
-
-### Generating Test Data
-
-If you have existing validated data:
-
-```bash
-# Subsample Illumina reads (keep 10,000 pairs)
-seqtk sample -s100 full_R1.fastq.gz 10000 | gzip > test_R1.fastq.gz
-seqtk sample -s100 full_R2.fastq.gz 10000 | gzip > test_R2.fastq.gz
-
-# Subsample Nanopore reads (keep 500 reads)
-seqtk sample -s100 full_nanopore.fastq.gz 500 | gzip > test_nanopore.fastq.gz
-```
-
-### Test Samplesheet
-
-Create `tests/data/samplesheet_test.csv`:
-
-```csv
-sample,nanopore,illumina_1,illumina_2
-test_sample,tests/data/test_nanopore.fastq.gz,tests/data/test_R1.fastq.gz,tests/data/test_R2.fastq.gz
-```
-
-## Expected Test Results
-
-### Successful Test Run
-
-A successful test should:
-- Complete all processes without errors
-- Produce all expected output files
-- Generate valid assembly (FASTA format, non-empty)
-- Complete within resource limits (time, memory)
-
-### Quality Thresholds for Test Data
-
-Since test data is small, quality metrics will be lower than production:
-
-**CheckM2 (expected for test data):**
-- Completeness: >80% (lower than production due to low coverage)
-- Contamination: <5%
-
-**QUAST (expected for test data):**
-- Number of contigs: <100
-- N50: >10 Kb (lower than production)
-- Total length: Within 20% of expected genome size
-
-## Debugging Failed Tests
-
-### Common Issues
-
-**1. Container not found**
-```
-Solution: Run workflows/install.nf to download containers
-```
-
-**2. Test data not found**
-```
-Solution: Check paths in samplesheet, ensure files exist
-```
-
-**3. Process out of memory**
-```
-Solution: Check conf/test.config resources, may need to increase
-```
-
-**4. Assembly fails**
-```
-Solution: Test data may be too small/poor quality, try increasing coverage
-```
-
-### Debugging Steps
-
-1. **Check work directory:**
-   ```bash
-   ls -la work/
-   ```
-
-2. **Examine process logs:**
-   ```bash
-   cat work/<hash>/.command.log
-   cat work/<hash>/.command.err
-   ```
-
-3. **View process script:**
-   ```bash
-   cat work/<hash>/.command.sh
-   ```
-
-4. **Use -resume to continue:**
-   ```bash
-   nextflow run test_fastp.nf -profile test,singularity -resume
-   ```
-
-5. **Increase verbosity:**
-   ```bash
-   nextflow run test_fastp.nf -profile test,singularity -with-trace -with-report
-   ```
-
-## Continuous Integration (CI/CD)
-
-### GitHub Actions
-
-Example workflow for automated testing:
-
-```yaml
-name: Pipeline Tests
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Install Nextflow
-        run: |
-          wget -qO- https://get.nextflow.io | bash
-          chmod +x nextflow
-          sudo mv nextflow /usr/local/bin/
-
-      - name: Install Singularity
-        run: |
-          # Install Singularity commands here
-
-      - name: Download containers
-        run: nextflow run workflows/install.nf
-
-      - name: Run tests
-        run: |
-          nextflow run main.nf -profile test -stub-run
-          # Add actual tests once test data is available
-```
-
-## Test Development Checklist
-
-When adding a new module, create tests that verify:
-
-- [ ] Module can be imported and executed
-- [ ] All expected outputs are produced
-- [ ] Output files are non-empty
-- [ ] Output files have correct format
-- [ ] Process completes within resource limits
-- [ ] Version capture works correctly
-- [ ] Stub mode works correctly
-
-## Best Practices
-
-1. **Keep tests fast:** Use minimal data, aim for <5 min per module test
-2. **Test edge cases:** Empty files, single sample, multiple samples
-3. **Verify outputs:** Don't just check files exist, verify they're valid
-4. **Use stub mode:** Test workflow logic without running actual processes
-5. **Document test data:** Clearly document what test data represents
-6. **Automate testing:** Set up CI/CD for automatic testing on changes
-7. **Test cleanup:** Remove intermediate files to save disk space
-
-## TODO for Phase 2+
-
-- [x] Add actual test data to `tests/data/`
-- [x] Implement most module test workflows
-- [x] Create integration test workflow (subworkflows tested)
-- [ ] Create main pipeline integration test
-- [ ] Set up CI/CD pipeline
-- [ ] Add test data generation scripts
-- [ ] Document expected test outputs
-- [ ] Create test runner script for all module tests
-- [ ] Add performance benchmarks for tests
-
-## Resources
-
-- [Nextflow Testing Documentation](https://www.nextflow.io/docs/latest/testing.html)
-- [nf-core Testing Guidelines](https://nf-co.re/docs/contributing/modules#writing-tests)
-- [Nextflow Patterns](https://nextflow-io.github.io/patterns/)
+| Test | Data needed | Status |
+|------|------------|--------|
+| fastp | raw reads | passed |
+| porechop_abi | raw reads | passed |
+| filtlong | raw reads | passed |
+| coverage_check (pass + fail) | raw reads | passed |
+| flye | raw reads | passed |
+| unicycler | raw reads | passed |
+| checkm2 | flye assembly | passed |
+| quast | flye assembly | passed |
+| bwa_mem | small reads | passed |
+| polypolish | small reads | passed |
+| dnaapler | flye assembly | passed |
+| dnadiff | flye + unicycler assembly | passed |
+| circularity_check | flye info + unicycler fasta | passed |
+| polishing_summary | dnadiff report files | passed |
+| assembly_polypolish | small reads | passed |
+| assembly_unicycler | raw reads | passed |
+| assembly_flye_unicycler | raw reads | passed |
+| stub run (all 3 modes) | none | passed |

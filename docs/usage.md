@@ -57,21 +57,21 @@ nextflow -version
 ### 2. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/listeria-hybrid-nf.git
-cd listeria-hybrid-nf
+git clone https://github.com/talasjudit/listeria-hybrid-assembly-nf.git
+cd listeria-hybrid-assembly-nf
 ```
 
 ### 3. Download Containers
 
 **On HPC (from login node with internet access):**
 ```bash
-nextflow run workflows/install.nf \
+nextflow run main.nf -entry INSTALL -profile singularity \
     --singularity_cachedir /shared/containers
 ```
 
 **On local system:**
 ```bash
-nextflow run workflows/install.nf
+nextflow run main.nf -entry INSTALL -profile singularity
 ```
 
 This downloads ~5-10 GB of containers. Run this once and containers are reused for all pipeline runs.
@@ -103,12 +103,12 @@ Sample003,/data/nanopore/sample3.fastq.gz,/data/illumina/sample3_R1.fastq.gz,/da
 ```
 
 **Important rules:**
-- ✅ Header row is required
-- ✅ All four columns are required
-- ✅ Use absolute paths (not relative)
-- ✅ Sample names must be unique
-- ❌ No spaces in sample names
-- ❌ All files must exist
+- Header row is required
+- All four columns are required
+- Use absolute paths (not relative)
+- Sample names must be unique
+- No spaces in sample names
+- All files must exist
 
 ### Validating Your Samplesheet
 
@@ -152,6 +152,7 @@ nextflow run main.nf \
 nextflow run main.nf \
     --input samplesheet.csv \
     --outdir results \
+    --assembly_mode flye_unicycler \
     --genome_size 3m \
     --max_cpus 16 \
     --max_memory 128.GB \
@@ -180,9 +181,13 @@ nextflow run main.nf --input samplesheet.csv -profile singularity,slurm
 
 ## Assembly Modes
 
-### Standard Mode (Default)
+The pipeline supports three assembly modes selected with `--assembly_mode`. All modes
+run through the same QC steps (FastP, Porechop ABI, Filtlong, coverage check) and
+the same post-assembly steps (circularity check, dnaapler reorientation, CheckM2, QUAST, MultiQC).
 
-**Best for:** Most bacterial genomes
+### Mode 1: `unicycler` (default)
+
+**Best for:** Most bacterial isolate genomes with adequate Illumina + Nanopore coverage.
 
 ```bash
 nextflow run main.nf \
@@ -191,60 +196,97 @@ nextflow run main.nf \
 ```
 
 **How it works:**
-1. Unicycler builds assembly graph from Illumina reads
+1. Unicycler builds a short-read assembly graph from Illumina reads
 2. Nanopore reads bridge contigs and resolve repeats
 3. Illumina reads polish the final assembly
+4. dnaapler reorients the chromosome to start at dnaA
 
-**Advantages:**
-- Faster (2-8 hours per sample)
-- Lower memory usage
-- Simpler workflow
+**When to use:**
+- Standard bacterial genomes without complex repeats
+- Limited computational resources or faster turnaround needed
+- Q10+ Nanopore reads with 30x+ coverage
 
-**Typical results:**
-- 10-50 contigs for bacterial genomes
-- N50: 50-500 Kb
+**Typical results for Listeria:**
+- 1-5 contigs; often circularised chromosome
+- N50: 100 Kb - complete chromosome
 
-### With Flye Mode
+---
 
-**Best for:** Complex genomes, high-quality Nanopore data
+### Mode 2: `flye_unicycler`
+
+**Best for:** Complex genomes where Unicycler alone cannot bridge high-copy repeats.
 
 ```bash
 nextflow run main.nf \
     --input samplesheet.csv \
-    --use_flye \
+    --assembly_mode flye_unicycler \
     --genome_size 3m \
     -profile singularity,slurm
 ```
 
 **How it works:**
-1. Flye creates high-quality long-read assembly
-2. Unicycler uses Flye assembly as scaffold
-3. Illumina reads polish and correct
+1. Flye creates a long-read-only assembly resolving complex repeats
+2. Unicycler uses the Flye assembly as a scaffold (`--existing_long_read_assembly`)
+3. Illumina reads polish and correct the scaffolded assembly
+4. dnaapler reorients the chromosome
 
-**Advantages:**
-- Better for complex repeat structures
-- Higher contiguity (larger N50)
-- Often produces complete chromosomes
+**When to use:**
+- Unicycler fails to circularise but Flye circularises cleanly
+- Q15+ Nanopore reads with 50x+ coverage
+- Maximum contiguity is the goal
 
-**Disadvantages:**
-- Slower (4-12 hours per sample)
-- Requires more memory
-- Needs good quality Nanopore reads (Q15+)
+**Typical results for Listeria:**
+- 1-10 contigs; circularised chromosome
+- N50: complete chromosome
 
-**Typical results:**
-- 1-20 contigs
-- N50: 100 Kb - complete chromosome
-- Often circularized chromosomes
+---
+
+### Mode 3: `flye_polypolish`
+
+**Best for:** Samples where Unicycler cannot circularise due to high-copy-number repeats,
+and Flye alone achieves full circularisation.
+
+```bash
+nextflow run main.nf \
+    --input samplesheet.csv \
+    --assembly_mode flye_polypolish \
+    --genome_size 3m \
+    --reference /path/to/reference.fasta \
+    -profile singularity,slurm
+```
+
+**How it works:**
+1. Flye creates a circularised long-read assembly
+2. Polypolish corrects base-level errors using Illumina short reads
+3. dnaapler reorients the chromosome to start at dnaA
+4. dnadiff runs twice vs the reference (if `--reference` is provided): once on the Flye draft, once on the Polypolish output
+5. polishing_summary produces a before/after TSV with IMPROVED / UNCHANGED / WORSE status
+
+**When to use:**
+- Unicycler cannot resolve complex repeats even with Flye scaffold
+- High-quality Nanopore data (Q15+, high coverage)
+- A validated reference genome is available for QC comparison
+
+**Optional:**
+- `--reference /path/to/reference.fasta` — enables dnadiff reference comparison QC
+
+**Typical results for Listeria:**
+- Single circularised chromosome + plasmid(s) if present
+- N50: complete chromosome
+
+---
 
 ### Choosing Assembly Mode
 
-| Factor | Standard Mode | With Flye Mode |
-|--------|---------------|----------------|
-| **Genome complexity** | Simple/average | Complex repeats |
-| **Nanopore quality** | Q10+ | Q15+ preferred |
-| **Nanopore coverage** | 30x+ | 50x+ |
-| **Time available** | Limited | Flexible |
-| **Expected result** | Good assembly | Best possible assembly |
+| Factor | `unicycler` | `flye_unicycler` | `flye_polypolish` |
+|--------|-------------|------------------|-------------------|
+| **Genome complexity** | Simple/average | Complex repeats | Complex repeats (Unicycler fails) |
+| **Nanopore quality** | Q10+ | Q15+ preferred | Q15+ |
+| **Nanopore coverage** | 30x+ | 50x+ | 50x+ |
+| **Compute time** | 2-8 h | 6-14 h | 6-14 h |
+| **Reference needed** | No | No | Optional (for dnadiff) |
+| **Post-assembly rotation** | dnaapler | dnaapler | dnaapler |
+| **Reference QC** | - | - | dnadiff (optional) |
 
 ## Configuration
 
@@ -415,7 +457,7 @@ Check:
 Solution:
 - Increase sequencing depth
 - Improve DNA quality
-- Try --use_flye mode
+- Try --assembly_mode flye_unicycler or flye_polypolish
 ```
 
 **Issue:** High contamination (>5%)
@@ -440,7 +482,7 @@ Check:
 Solution:
 - Increase Nanopore coverage
 - Improve Nanopore read quality
-- Try --use_flye mode
+- Try --assembly_mode flye_unicycler or flye_polypolish
 - Adjust --min_read_length parameter
 ```
 

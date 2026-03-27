@@ -12,14 +12,15 @@ Complete reference for all pipeline parameters.
 6. [Container Options](#container-options)
 7. [MultiQC Options](#multiqc-options)
 8. [Generic Options](#generic-options)
+9. [Common Parameter Combinations](#common-parameter-combinations)
 
 ## Parameter Overview
 
 | Category | Required | Optional |
 |----------|----------|----------|
-| Input/Output | `--input`, `--outdir` | `--tracedir` |
-| Assembly | - | `--use_flye`, `--genome_size` |
-| QC | - | `--min_coverage`, `--min_read_length`, etc. |
+| Input/Output | `--input`, `--outdir` | - |
+| Assembly | - | `--assembly_mode`, `--genome_size`, `--reference` |
+| QC | - | `--min_illumina_coverage`, `--min_nanopore_coverage`, `--min_read_length`, etc. |
 | Resources | - | `--max_cpus`, `--max_memory`, `--max_time` |
 
 ## Required Parameters
@@ -63,54 +64,49 @@ Complete reference for all pipeline parameters.
 - Use absolute path for cluster jobs
 - Ensure sufficient disk space
 
-### --tracedir
-
-**Type:** String (directory path)
-**Default:** `${params.outdir}/pipeline_info`
-**Description:** Directory for Nextflow execution reports
-
-**Example:**
-```bash
---tracedir ${params.outdir}/logs
-```
-
-**Generated files:**
-- `execution_timeline.html`
-- `execution_report.html`
-- `execution_trace.txt`
-- `pipeline_dag.svg`
-
 ## Assembly Options
 
-### --use_flye
+### --assembly_mode
 
-**Type:** Boolean
-**Default:** `false`
-**Description:** Run Flye long-read assembly before Unicycler
+**Type:** String (enum)
+**Default:** `unicycler`
+**Valid values:** `unicycler`, `flye_unicycler`, `flye_polypolish`
+**Description:** Assembly strategy to use
+
+| Mode | Description |
+|------|-------------|
+| `unicycler` | Unicycler hybrid assembly using Illumina + Nanopore reads (default) |
+| `flye_unicycler` | Flye long-read assembly → Unicycler with `--existing_long_read_assembly` |
+| `flye_polypolish` | Flye long-read assembly → Polypolish (Illumina-based polishing) |
 
 **Example:**
 ```bash
-# Enable Flye mode
---use_flye
+# Default (unicycler hybrid)
+--assembly_mode unicycler
 
-# Or explicitly
---use_flye true
+# Flye → Unicycler
+--assembly_mode flye_unicycler
 
-# Disable (default)
---use_flye false
+# Flye → Polypolish
+--assembly_mode flye_polypolish
 ```
 
-**When to use:**
-- Complex genomes with repeats
-- High-quality Nanopore data (Q15+)
-- Want maximum contiguity
-- Have computational resources (time and memory)
+**When to use each mode:**
 
-**When NOT to use:**
-- Standard bacterial genomes
-- Limited computational resources
-- Lower quality Nanopore data
+`unicycler` (default):
+- Standard bacterial isolate genomes
+- Sufficient Illumina + Nanopore coverage
 - Fast turnaround needed
+
+`flye_unicycler`:
+- Complex repeat structures preventing Unicycler circularisation
+- High-quality Nanopore data (Q15+, 50x+)
+- Want Flye's graph resolution with Unicycler polishing
+
+`flye_polypolish`:
+- Unicycler cannot circularise due to high-copy repeats (confirmed by Flye circularising cleanly)
+- High-quality Nanopore data (Q15+)
+- Validated reference available for dnadiff QC
 
 **See Also:** [Assembly modes](usage.md#assembly-modes)
 
@@ -131,55 +127,69 @@ Complete reference for all pipeline parameters.
 
 # For Listeria (~3 Mb)
 --genome_size 3m
-
-# Alternative formats
---genome_size 3000k
 ```
 
 **Important:**
-- Only used if `--use_flye` is enabled
-- Should be approximate expected size
-- Too far off can affect assembly quality
+- Required for `flye_unicycler` and `flye_polypolish` modes
+- Not used in `unicycler` mode
+- Should be approximate; too far off can affect assembly quality
 
 **Typical bacterial genome sizes:**
 - Small bacteria: 1-2 Mb
 - Average bacteria: 3-5 Mb
 - Large bacteria: 6-10 Mb
 
+### --reference
+
+**Type:** String (file path)
+**Default:** `null` (not required)
+**Description:** Path to reference genome FASTA for dnadiff comparison
+
+**Example:**
+```bash
+--reference /path/to/reference.fasta
+--reference /qib/references/Listeria_monocytogenes_EGD-e.fasta
+```
+
+**Notes:**
+- Only used when `--assembly_mode flye_polypolish` is set
+- If omitted in flye_polypolish mode, dnadiff is skipped with a warning
+- Not used in `unicycler` or `flye_unicycler` modes
+- The file must exist if provided (validated at runtime)
+
 ## QC Options
 
-### --min_coverage
+### --min_illumina_coverage
 
 **Type:** Integer
 **Default:** `30`
-**Description:** Minimum Illumina coverage threshold (warning only)
+**Description:** Minimum Illumina coverage required to pass the coverage gate
 
 **Example:**
 ```bash
---min_coverage 30
---min_coverage 50  # Stricter
+--min_illumina_coverage 30   # Default
+--min_illumina_coverage 50   # Stricter
 ```
 
 **Notes:**
-- Generates warning if coverage is below threshold
-- Pipeline continues even if below threshold
-- Used for quality assessment, not filtering
+- Samples below this threshold are excluded from assembly with a warning
+- Coverage is calculated by seqkit against `--genome_size`
 
-### --max_coverage
+### --min_nanopore_coverage
 
 **Type:** Integer
-**Default:** `40`
-**Description:** Target maximum Illumina coverage (for potential downsampling)
+**Default:** `20`
+**Description:** Minimum Nanopore coverage required to pass the coverage gate
 
 **Example:**
 ```bash
---max_coverage 40
---max_coverage 100  # For high coverage samples
+--min_nanopore_coverage 20   # Default
+--min_nanopore_coverage 40   # Stricter
 ```
 
 **Notes:**
-- Currently generates warnings for high coverage
-- Future versions may implement downsampling
+- Samples below this threshold are excluded from assembly with a warning
+- Coverage is calculated by seqkit against `--genome_size`
 
 ### --min_read_length
 
@@ -324,7 +334,7 @@ Complete reference for all pipeline parameters.
 ### --singularity_cachedir
 
 **Type:** String (directory path)
-**Default:** `./singularity_cache`
+**Default:** `${launchDir}/singularity_cache`
 **Description:** Directory where Singularity containers are stored
 
 **Example:**
@@ -433,75 +443,6 @@ nextflow run main.nf --version
 - Recommended to keep enabled
 - Checks parameter types, ranges, and requirements
 
-## Advanced Options
-
-### --validationShowHiddenParams
-
-**Type:** Boolean
-**Default:** `false`
-**Description:** Show all parameters including hidden ones in help
-
-**Example:**
-```bash
-nextflow run main.nf --help --validationShowHiddenParams
-```
-
-### --validationSchemaIgnoreParams
-
-**Type:** String (comma-separated)
-**Default:** `genomes,igenomes_base`
-**Description:** Parameters to ignore during validation
-
-**Example:**
-```bash
---validationSchemaIgnoreParams "genomes,igenomes_base,custom_param"
-```
-
-## Parameter Precedence
-
-Parameters can be set in multiple locations. Precedence (highest to lowest):
-
-1. **Command line:** `--parameter value`
-2. **Custom config:** `-c custom.config`
-3. **Profile config:** `-profile slurm` (includes `conf/slurm.config`)
-4. **Base config:** `nextflow.config`
-
-**Example:**
-```bash
-# These override defaults in nextflow.config
-nextflow run main.nf \
-    --max_cpus 16 \           # Command line (highest priority)
-    -c custom.config \        # Custom config
-    -profile slurm            # Profile config
-```
-
-## Configuration Files vs Parameters
-
-**Parameters** (`--param value`):
-- User-facing options
-- Documented in schema
-- Validated automatically
-- Set via command line
-
-**Configuration** (in `.config` files):
-- Process-specific settings
-- Resource allocations
-- Advanced options
-- Set in config files
-
-**Example:**
-```bash
-# Parameters (command line)
---max_memory 64.GB
-
-# Configuration (in conf/base.config)
-process {
-    withName: 'UNICYCLER' {
-        memory = { check_max( 32.GB * task.attempt, 'memory' ) }
-    }
-}
-```
-
 ## Common Parameter Combinations
 
 ### Quick test run
@@ -525,14 +466,28 @@ nextflow run main.nf \
     -resume
 ```
 
-### High-quality assembly with Flye
+### Flye + Unicycler assembly
 
 ```bash
 nextflow run main.nf \
     --input samplesheet.csv \
     --outdir results \
-    --use_flye \
+    --assembly_mode flye_unicycler \
     --genome_size 3m \
+    --max_cpus 24 \
+    --max_memory 256.GB \
+    -profile singularity,slurm
+```
+
+### Flye + Polypolish assembly with reference QC
+
+```bash
+nextflow run main.nf \
+    --input samplesheet.csv \
+    --outdir results \
+    --assembly_mode flye_polypolish \
+    --genome_size 3m \
+    --reference /path/to/reference.fasta \
     --max_cpus 24 \
     --max_memory 256.GB \
     -profile singularity,slurm
@@ -564,5 +519,5 @@ nextflow run main.nf \
 - **Usage Guide:** [usage.md](usage.md)
 - **Output Description:** [output.md](output.md)
 - **Configuration Files:** [`conf/README.md`](../conf/README.md)
-- **Parameter Schema:** [`nextflow.schema.json`](../nextflow.schema.json)
+- **Parameter Schema:** [`nextflow_schema.json`](../nextflow_schema.json)
 - **Main Config:** [`nextflow.config`](../nextflow.config)
