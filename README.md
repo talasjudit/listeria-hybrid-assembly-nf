@@ -122,11 +122,12 @@ nextflow run main.nf \
 
 For full documentation, see the **[Wiki](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki)**:
 
-- [Installation](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/2.-Installation)
-- [Configuration](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/3.-Configuration)
-- [Pipeline Steps](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/4.-Pipeline-Steps)
-- [Output Structure](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki/5.-Output)
-
+- [Installation](Installation) — prerequisites, cloning, downloading containers
+- [Usage](Usage) — samplesheet format, running the pipeline, monitoring
+- [Assembly Modes](Assembly-Modes) — when to use each mode and what to expect
+- [Output](Output) — output directory structure and file descriptions
+- [Parameters](Parameters) — full parameter reference
+  
 Or see the local docs:
 
 - [Usage Guide](docs/usage.md)
