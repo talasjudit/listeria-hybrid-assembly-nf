@@ -122,22 +122,10 @@ nextflow run main.nf \
 
 For full documentation, see the **[Wiki](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki)**:
 
-- [Installation](Installation) — prerequisites, cloning, downloading containers
-- [Usage](Usage) — samplesheet format, running the pipeline, monitoring
-- [Assembly Modes](Assembly-Modes) — when to use each mode and what to expect
-- [Output](Output) — output directory structure and file descriptions
-- [Parameters](Parameters) — full parameter reference
-  
-Or see the local docs:
-
-- [Usage Guide](docs/usage.md)
-- [Parameters Reference](docs/parameters.md)
-- [Output Documentation](docs/output.md)
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgements
 
-Pipeline development assisted by AI pair programming (Claude/Gemini)
+Pipeline development assisted by AI paired programming (Claude/Gemini)
