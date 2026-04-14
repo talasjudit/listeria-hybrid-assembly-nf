@@ -15,7 +15,7 @@ process FLYE {
 
     container "${params.singularity_cachedir}/flye-2.9.6.sif"
     
-    publishDir "${params.outdir}/assembly/${params.assembly_mode}/flye", mode: 'copy', pattern: "*_flye{_info.txt,.log}"
+    publishDir "${params.outdir}/assembly/${params.assembly_mode}/flye", mode: 'copy', pattern: "*_flye{_info.txt,.log,.gfa}"
 
     input:
     tuple val(meta), path(reads)  // reads = nanopore_filtlong.fastq.gz
@@ -23,6 +23,7 @@ process FLYE {
     output:
     tuple val(meta), path("*_flye.fasta")     , emit: assembly
     tuple val(meta), path("*_flye_info.txt")  , emit: info
+    tuple val(meta), path("*_flye.gfa")      , emit: gfa
     tuple val(meta), path("*_flye.log")       , emit: process_log
     path 'versions.yml'                  , emit: versions
 
@@ -45,6 +46,7 @@ process FLYE {
     # Rename and move outputs to standardize naming
     mv out_dir/assembly.fasta ${prefix}_flye.fasta
     mv out_dir/assembly_info.txt ${prefix}_flye_info.txt
+    mv out_dir/assembly_graph.gfa ${prefix}_flye.gfa
     mv out_dir/flye.log ${prefix}_flye.log
     
     # Capture version
@@ -59,6 +61,7 @@ process FLYE {
     """
     touch ${prefix}_flye.fasta
     touch ${prefix}_flye_info.txt
+    touch ${prefix}_flye.gfa
     touch ${prefix}_flye.log
     touch versions.yml
     """
