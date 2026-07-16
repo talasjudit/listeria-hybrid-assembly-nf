@@ -263,38 +263,3 @@ workflow HYBRID_ASSEMBLY {
         ch_multiqc_config
     )
 }
-
-/*
-========================================================================================
-    COMPLETION HANDLER
-========================================================================================
-*/
-
-workflow.onComplete {
-    log.info """
-    ==============================================
-     Pipeline Execution Complete
-    ==============================================
-    Status      : ${workflow.success ? '✓ SUCCESS' : '✗ FAILED'}
-    Work dir    : ${workflow.workDir}
-    Results     : ${params.outdir}
-    Duration    : ${workflow.duration}
-    Exit status : ${workflow.exitStatus}
-    ==============================================
-    """.stripIndent()
-
-    if (!workflow.success) {
-        log.error "Pipeline failed. Check .nextflow.log for details."
-    }
-}
-
-workflow.onError {
-    log.error """
-    ==============================================
-     Pipeline Error
-    ==============================================
-    Error message: ${workflow.errorMessage}
-    Error report : ${workflow.errorReport}
-    ==============================================
-    """.stripIndent()
-}

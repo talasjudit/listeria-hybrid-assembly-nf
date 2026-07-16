@@ -18,7 +18,8 @@ nextflow.enable.dsl=2
 // BWA note: bwa exits 1 with no args and prints to stderr; pipe through grep to capture
 // the version line cleanly without a non-zero exit code.
 
-def containers = [
+def containerList() {
+    return [
     // Illumina QC
     ['fastp-1.0.1.sif',         'oras://ghcr.io/talasjudit/bsup-2555/fastp:1.0.1-1',                                  'fastp --version',         '1.0.1'],
 
@@ -45,7 +46,8 @@ def containers = [
     // Assembly QC
     ['checkm2-1.1.0.sif',       'oras://ghcr.io/talasjudit/bsup-2555/checkm2:1.1.0-1',                               'checkm2 --version',       '1.1.0'],
     ['quast-5.3.0.sif',         'oras://ghcr.io/talasjudit/bsup-2555/quast:5.3.0-1',                                  'quast.py --version',      '5.3.0'],
-]
+    ]
+}
 
 /*
 ========================================================================================
@@ -88,6 +90,8 @@ process DOWNLOAD_CONTAINER {
 */
 
 workflow INSTALL {
+
+    def containers = containerList()
 
     log.info """
     Container Installation Workflow

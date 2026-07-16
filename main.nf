@@ -4,12 +4,12 @@
     Hybrid Bacterial Genome Assembly Pipeline - Entry Point
 ========================================================================================
     Github: https://github.com/talasjudit/listeria-hybrid-assembly-nf
-    
+
     This is the main entry point for the pipeline. It handles:
     - Help and version display
     - Parameter validation
     - Entry point routing (INSTALL vs main pipeline)
-    
+
     The actual pipeline logic is in workflows/main.nf
 ========================================================================================
 */
@@ -29,10 +29,13 @@ include { HYBRID_ASSEMBLY } from "./workflows/main"
 ========================================================================================
     HELP MESSAGE
 ========================================================================================
+    Strict DSL2 syntax (opt-in since 24.10, default in 26.04) disallows top-level
+    statements, so the help text lives in a function and the --help / --version
+    guards run inside the entry workflow below.
 */
 
-if (params.help) {
-    log.info """
+def helpMessage() {
+    return """
     ╔═══════════════════════════════════════════════════════════════╗
     ║         Hybrid Bacterial Genome Assembly Pipeline             ║
     ╚═══════════════════════════════════════════════════════════════╝
@@ -106,16 +109,6 @@ if (params.help) {
 
     For more details, see: https://github.com/talasjudit/listeria-hybrid-assembly-nf
     """.stripIndent()
-    exit 0
-}
-
-// Print version if requested
-if (params.version) {
-    log.info """
-    Pipeline: ${workflow.manifest.name}
-    Version:  ${workflow.manifest.version}
-    """.stripIndent()
-    exit 0
 }
 
 /*
@@ -139,5 +132,19 @@ workflow INSTALL {
 */
 
 workflow {
+    // Help / version short-circuit (replaces the old top-level `exit 0` guards)
+    if (params.help) {
+        log.info helpMessage()
+        return
+    }
+
+    if (params.version) {
+        log.info """
+        Pipeline: ${workflow.manifest.name}
+        Version:  ${workflow.manifest.version}
+        """.stripIndent()
+        return
+    }
+
     HYBRID_ASSEMBLY()
 }
