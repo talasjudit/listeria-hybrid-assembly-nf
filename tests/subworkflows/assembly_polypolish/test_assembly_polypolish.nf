@@ -27,15 +27,15 @@ nextflow.enable.dsl=2
 
 include { ASSEMBLY_POLYPOLISH } from '../../../subworkflows/local/assembly_polypolish'
 
-// Verify required test data is present
-def missing = ['test_flye_assembly.fasta', 'test_R1_small.fastq.gz', 'test_R2_small.fastq.gz'].findAll {
-    !file("${launchDir}/tests/data/${it}").exists()
-}
-if (missing) {
-    error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
-}
-
 workflow {
+    // Verify required test data is present
+    def missing = ['test_flye_assembly.fasta', 'test_R1_small.fastq.gz', 'test_R2_small.fastq.gz'].findAll {
+        !file("${launchDir}/tests/data/${it}").exists()
+    }
+    if (missing) {
+        error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
+    }
+
     log.info "Testing ASSEMBLY_POLYPOLISH subworkflow..."
 
     ch_illumina = Channel.of([
@@ -67,9 +67,4 @@ workflow {
         .view { versions ->
             log.info "✓ Version info: ${versions.name}"
         }
-}
-
-workflow.onComplete {
-    println ""
-    println "ASSEMBLY_POLYPOLISH test complete. Results in: ${params.outdir}"
 }

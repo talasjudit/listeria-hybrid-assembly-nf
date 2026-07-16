@@ -16,9 +16,9 @@ nextflow.enable.dsl = 2
 // Import the subworkflow
 include { QC_NANOPORE } from '../../../subworkflows/local/qc_nanopore'
 
-println "Testing QC_NANOPORE subworkflow..."
-
 workflow {
+    println "Testing QC_NANOPORE subworkflow..."
+
     // Create test input channel with Nanopore reads
     ch_nanopore = Channel.of(
         [
@@ -45,10 +45,4 @@ workflow {
         .view { versions ->
             "✓ Versions file: ${versions.name}"
         }
-}
-
-workflow.onComplete {
-    println ""
-    println "Pipeline completed!"
-    println "Results in: ${params.outdir}"
 }

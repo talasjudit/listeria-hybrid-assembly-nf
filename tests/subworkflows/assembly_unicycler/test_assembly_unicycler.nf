@@ -28,15 +28,15 @@ nextflow.enable.dsl=2
 
 include { ASSEMBLY_UNICYCLER } from '../../../subworkflows/local/assembly_unicycler'
 
-// Verify required test data is present
-def missing = ['test_R1.fastq.gz', 'test_R2.fastq.gz', 'test_nanopore.fastq.gz'].findAll {
-    !file("${launchDir}/tests/data/${it}").exists()
-}
-if (missing) {
-    error "Missing test data: ${missing.join(', ')}\nStage reads first: sbatch tests/data/generate_test_assemblies.slurm"
-}
-
 workflow {
+    // Verify required test data is present
+    def missing = ['test_R1.fastq.gz', 'test_R2.fastq.gz', 'test_nanopore.fastq.gz'].findAll {
+        !file("${launchDir}/tests/data/${it}").exists()
+    }
+    if (missing) {
+        error "Missing test data: ${missing.join(', ')}\nStage reads first: sbatch tests/data/generate_test_assemblies.slurm"
+    }
+
     log.info "Testing ASSEMBLY_UNICYCLER subworkflow..."
 
     ch_illumina = Channel.of([
@@ -73,9 +73,4 @@ workflow {
         .view { versions ->
             log.info "✓ Version info: ${versions.name}"
         }
-}
-
-workflow.onComplete {
-    println ""
-    println "ASSEMBLY_UNICYCLER test complete. Results in: ${params.outdir}"
 }

@@ -76,15 +76,3 @@ workflow {
             log.info "✓ Version info: ${versions.name}"
         }
 }
-
-workflow.onComplete {
-    log.info ""
-    log.info "═══════════════════════════════════════════════════════════════"
-    if (workflow.success) {
-        log.info "FASTP module test completed successfully!"
-    } else {
-        log.info "FASTP module test failed!"
-    }
-    log.info "═══════════════════════════════════════════════════════════════"
-    log.info ""
-}

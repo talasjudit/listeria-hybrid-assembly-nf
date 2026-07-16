@@ -16,9 +16,9 @@ nextflow.enable.dsl = 2
 // Import the subworkflow
 include { QC_ASSEMBLY } from '../../../subworkflows/local/qc_assembly'
 
-println "Testing QC_ASSEMBLY subworkflow..."
-
 workflow {
+    println "Testing QC_ASSEMBLY subworkflow..."
+
     // Create test input channel with assembly
     ch_assembly = Channel.of(
         [
@@ -50,10 +50,4 @@ workflow {
     QC_ASSEMBLY.out.versions.toList().subscribe { items ->
         items.each { version -> println "✓ Versions file: ${version.name}" }
     }
-}
-
-workflow.onComplete {
-    println ""
-    println "Pipeline completed!"
-    println "Results in: ${params.outdir}"
 }

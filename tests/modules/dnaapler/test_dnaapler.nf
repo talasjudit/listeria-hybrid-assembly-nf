@@ -18,15 +18,15 @@ nextflow.enable.dsl=2
 
 include { DNAAPLER } from '../../../modules/local/dnaapler'
 
-// Verify required test data is present
-def missing = ['test_flye_assembly.fasta'].findAll {
-    !file("${launchDir}/tests/data/${it}").exists()
-}
-if (missing) {
-    error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
-}
-
 workflow {
+    // Verify required test data is present
+    def missing = ['test_flye_assembly.fasta'].findAll {
+        !file("${launchDir}/tests/data/${it}").exists()
+    }
+    if (missing) {
+        error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
+    }
+
     log.info "Testing DNAAPLER module..."
 
     def assembly = file("${launchDir}/tests/data/test_flye_assembly.fasta", checkIfExists: true)
@@ -49,9 +49,4 @@ workflow {
         .view { versions ->
             log.info "✓ Version info: ${versions.name}"
         }
-}
-
-workflow.onComplete {
-    println ""
-    println "DNAAPLER test complete. Results in: ${params.outdir}"
 }

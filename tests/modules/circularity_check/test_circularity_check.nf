@@ -27,15 +27,15 @@ include { CIRCULARITY_CHECK                       } from '../../../modules/local
 include { CIRCULARITY_CHECK as CIRCULARITY_CHECK2 } from '../../../modules/local/circularity_check'
 include { CIRCULARITY_CHECK as CIRCULARITY_CHECK3 } from '../../../modules/local/circularity_check'
 
-// Verify required test data is present
-def missing = ['test_flye_info.txt', 'test_unicycler_assembly.fasta', 'test_unicycler_linear_assembly.fasta'].findAll {
-    !file("${launchDir}/tests/data/${it}").exists()
-}
-if (missing) {
-    error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
-}
-
 workflow {
+    // Verify required test data is present
+    def missing = ['test_flye_info.txt', 'test_unicycler_assembly.fasta', 'test_unicycler_linear_assembly.fasta'].findAll {
+        !file("${launchDir}/tests/data/${it}").exists()
+    }
+    if (missing) {
+        error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
+    }
+
     log.info "Testing CIRCULARITY_CHECK module (Flye + Unicycler formats)..."
 
     // Case 1: Flye assembly_info.txt — no circular= in content → flye_draft report
@@ -98,9 +98,4 @@ workflow {
         .view { versions ->
             log.info "✓ Version info: ${versions.name}"
         }
-}
-
-workflow.onComplete {
-    println ""
-    println "CIRCULARITY_CHECK test complete. Results in: ${params.outdir}"
 }

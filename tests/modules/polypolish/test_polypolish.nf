@@ -25,15 +25,15 @@ nextflow.enable.dsl=2
 include { BWA_MEM    } from '../../../modules/local/bwa_mem'
 include { POLYPOLISH } from '../../../modules/local/polypolish'
 
-// Verify required test data is present
-def missing = ['test_flye_assembly.fasta', 'test_R1_small.fastq.gz', 'test_R2_small.fastq.gz'].findAll {
-    !file("${launchDir}/tests/data/${it}").exists()
-}
-if (missing) {
-    error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
-}
-
 workflow {
+    // Verify required test data is present
+    def missing = ['test_flye_assembly.fasta', 'test_R1_small.fastq.gz', 'test_R2_small.fastq.gz'].findAll {
+        !file("${launchDir}/tests/data/${it}").exists()
+    }
+    if (missing) {
+        error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
+    }
+
     log.info "Testing POLYPOLISH module (via BWA_MEM → POLYPOLISH chain)..."
 
     def assembly = file("${launchDir}/tests/data/test_flye_assembly.fasta", checkIfExists: true)
@@ -62,9 +62,4 @@ workflow {
         .view { versions ->
             log.info "✓ Version info: ${versions.name}"
         }
-}
-
-workflow.onComplete {
-    println ""
-    println "POLYPOLISH test complete. Results in: ${params.outdir}"
 }

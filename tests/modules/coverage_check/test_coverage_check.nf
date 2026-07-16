@@ -12,15 +12,15 @@ nextflow.enable.dsl=2
 
 include { COVERAGE_CHECK } from '../../../modules/local/coverage_check'
 
-// Verify required test data is present
-def missing = ['test_R1.fastq.gz', 'test_R2.fastq.gz', 'test_nanopore.fastq.gz'].findAll {
-    !file("${launchDir}/tests/data/${it}").exists()
-}
-if (missing) {
-    error "Missing test data: ${missing.join(', ')}\nRun: bash tests/data/download_test_data.sh\nNote: requires internet access - on HPC, run from a login node first."
-}
-
 workflow {
+    // Verify required test data is present
+    def missing = ['test_R1.fastq.gz', 'test_R2.fastq.gz', 'test_nanopore.fastq.gz'].findAll {
+        !file("${launchDir}/tests/data/${it}").exists()
+    }
+    if (missing) {
+        error "Missing test data: ${missing.join(', ')}\nRun: bash tests/data/download_test_data.sh\nNote: requires internet access - on HPC, run from a login node first."
+    }
+
     log.info "Testing COVERAGE_CHECK..."
     log.info "Params: Min Illumina Cov = ${params.min_illumina_coverage}x"
     log.info "Params: Min Nanopore Cov = ${params.min_nanopore_coverage}x"

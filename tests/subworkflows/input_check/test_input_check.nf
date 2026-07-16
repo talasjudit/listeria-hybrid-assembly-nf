@@ -17,9 +17,9 @@ nextflow.enable.dsl = 2
 // Import the subworkflow
 include { INPUT_CHECK } from '../../../subworkflows/local/input_check'
 
-println "Testing INPUT_CHECK subworkflow..."
-
 workflow {
+    println "Testing INPUT_CHECK subworkflow..."
+
     // The samplesheet path comes from params.input
     INPUT_CHECK(params.input)
 
@@ -33,10 +33,4 @@ workflow {
         .view { meta, reads ->
             "✓ Nanopore reads: ${meta.id} -> ${reads.name}"
         }
-}
-
-workflow.onComplete {
-    println ""
-    println "Pipeline completed!"
-    println "Samples parsed successfully."
 }

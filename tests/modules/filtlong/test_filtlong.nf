@@ -66,15 +66,3 @@ workflow {
             log.info "✓ Version info: ${versions.name}"
         }
 }
-
-workflow.onComplete {
-    log.info ""
-    log.info "═══════════════════════════════════════════════════════════════"
-    if (workflow.success) {
-        log.info "FILTLONG module test completed successfully!"
-    } else {
-        log.info "FILTLONG module test failed!"
-    }
-    log.info "═══════════════════════════════════════════════════════════════"
-    log.info ""
-}

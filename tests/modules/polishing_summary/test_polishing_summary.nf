@@ -28,15 +28,15 @@ include { POLISHING_SUMMARY                         } from '../../../modules/loc
 include { POLISHING_SUMMARY as POLISHING_SUMMARY2   } from '../../../modules/local/polishing_summary'
 include { POLISHING_SUMMARY as POLISHING_SUMMARY3   } from '../../../modules/local/polishing_summary'
 
-// Verify required test data is present
-def missing = ['test_flye_draft.report', 'test_polypolish.report'].findAll {
-    !file("${launchDir}/tests/data/${it}").exists()
-}
-if (missing) {
-    error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
-}
-
 workflow {
+    // Verify required test data is present
+    def missing = ['test_flye_draft.report', 'test_polypolish.report'].findAll {
+        !file("${launchDir}/tests/data/${it}").exists()
+    }
+    if (missing) {
+        error "Missing test data: ${missing.join(', ')}\nThese files should be committed to the repo — check tests/data/."
+    }
+
     log.info "Testing POLISHING_SUMMARY module (IMPROVED / UNCHANGED / WORSE)..."
 
     def draft_report    = file("${launchDir}/tests/data/test_flye_draft.report",  checkIfExists: true)
@@ -103,9 +103,4 @@ workflow {
         .view { versions ->
             log.info "✓ Version info: ${versions.name}"
         }
-}
-
-workflow.onComplete {
-    println ""
-    println "POLISHING_SUMMARY test complete. Results in: ${params.outdir}"
 }
