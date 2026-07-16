@@ -13,6 +13,15 @@ chromosome reorientation (dnaapler), circularity reporting, and reference compar
 (dnadiff × 2 + POLISHING_SUMMARY in flye_polypolish mode). All three modes passed
 integration testing on BL07-034 (2026-03-25).
 
+**Nextflow 26 / strict-syntax upgrade (2026-07-16):** CI began failing when
+`nf-core/setup-nextflow` started installing Nextflow 26.04.x, which makes the strict
+syntax parser the default. The pipeline was migrated to compile and run cleanly under
+it: `check_max()` → `resourceLimits`, top-level script statements removed, event
+handlers moved to config, and all 18 test scripts modernized (stale `assembly_hybrid`
+test deleted). Whole-repo `nextflow lint` is now error-free (was 58 errors) and all 3
+modes pass `-stub -profile ci` on 26.04.6. Minimum Nextflow is now **>=24.04.0**. See
+the "Nextflow language level" architecture note and the strict-parser gotchas below.
+
 ---
 
 ## Current File Structure
@@ -58,7 +67,7 @@ listeria-hybrid-assembly-nf/
 │   ├── qc_assembly.nf                   # CheckM2 + QUAST (parallel)
 │   └── README.md
 ├── conf/
-│   ├── base.config                      # Per-process resources + check_max()
+│   ├── base.config                      # Per-process resources + resourceLimits cap
 │   ├── slurm.config                     # Generic SLURM executor + offline mode
 │   ├── qib.config                       # QIB/NBI partition mapping
 │   ├── local.config                     # Local executor for development
@@ -90,8 +99,7 @@ listeria-hybrid-assembly-nf/
 │   │   ├── qc_assembly/test_qc_assembly.nf
 │   │   ├── assembly_unicycler/test_assembly_unicycler.nf
 │   │   ├── assembly_flye_unicycler/test_assembly_flye_unicycler.nf
-│   │   ├── assembly_polypolish/test_assembly_polypolish.nf
-│   │   └── assembly_hybrid/test_assembly_hybrid.nf  # STALE — remove in commit 2
+│   │   └── assembly_polypolish/test_assembly_polypolish.nf
 │   ├── integration/
 │   │   ├── submit_integration_test.sh   # Submit all 3 modes as chained SLURM jobs
 │   │   ├── run_pipeline_mode.slurm      # Per-mode SLURM job (receives mode via --export)
@@ -238,6 +246,52 @@ preprocessing steps automatically.
 `--meta` is for metagenomes (uneven coverage). **Not used** — not appropriate for
 Listeria isolate assemblies. Decision confirmed; no action needed.
 
+### Nextflow language level (strict syntax parser, >= 24.04)
+
+The pipeline targets the **strict Nextflow syntax parser** (opt-in since 24.10,
+default in 26.04). The changes below are required to compile and run on current
+Nextflow; strict-compliant code also runs on 24.04–25.x, so `>=24.04.0` is the
+supported floor (manifest + CI `setup-nextflow` pin + README badge + docs/usage.md
+all agree).
+
+- **`resourceLimits` replaces `check_max()`** (conf/base.config). The strict *config*
+  parser forbids function definitions in config files. `resourceLimits = [cpus, memory,
+  time]` caps every request at `params.max_*`. It is evaluated eagerly at include time,
+  so the `ci` and `test` profiles re-assert their own `resourceLimits` *after* they
+  override `params.max_*`. Requires Nextflow >= 24.04.
+
+- **No top-level statements in scripts** (main.nf, workflows/install.nf, tests/**). The
+  strict *script* parser rejects statements mixed with declarations:
+  - `main.nf`: `--help` / `--version` handling moved *inside* the entry `workflow {}`
+    (`exit 0` → `return`); help text is now a `helpMessage()` function.
+  - `workflows/install.nf`: the container catalogue is a `containerList()` function (a
+    top-level `def containers = [...]` variable is not allowed).
+  - test scripts: top-level data-check guards / `println`s moved into the workflow body.
+
+- **Event handlers live in config, not scripts** (nextflow.config). Script-level
+  `workflow.onComplete { } / onError { }` are rejected, so the completion banner + error
+  summary moved to nextflow.config. `log` is not bound in config closures, so they use
+  `println` / `System.err.println`. `nextflow lint` and the VSCode language server flag
+  config handlers as *deprecated* ("use the entry workflow or a plugin") — a non-fatal
+  warning accepted for now; a plugin is the eventual fix.
+
+### Maintenance posture: frozen reproducibility artifact
+
+This pipeline exists so collaborators across institutes run *exactly the same* analysis
+for a paper — it is not actively developed and is unlikely to gain features or users.
+The intended end-state is **frozen and pinned**:
+
+- **Nextflow is pinned in CI** (`.github/workflows/ci.yml` → `26.04.6`) rather than
+  tracking "latest". Tracking latest (`>=24.04.0`) is what broke CI in the first place;
+  pinning stops the treadmill. Bump the pin deliberately and re-run the stub matrix.
+- **The manifest floor stays `>=24.04.0`** so a colleague on a slightly different
+  24.04–26.x Nextflow can still run (strict-compliant code runs across that range). The
+  CI pin (one exact version) and the manifest floor (a permissive range) differ on purpose.
+- **Deprecation warnings are intentionally NOT chased** (`publishDir`, `Channel`→`channel`,
+  static typing, config-handler deprecation). All non-fatal; none affect results.
+  Modernizing working code with no result change is churn + risk for a frozen artifact —
+  reproducibility already rests on the pinned containers.
+
 ---
 
 ## Containers
@@ -314,6 +368,15 @@ Listeria isolate assemblies. Decision confirmed; no action needed.
 - [x] `docs/output.md` — rewritten for all current publishDir paths, modes, and circularity reports
 - [x] `README.md` — mermaid diagram updated for 3 modes, repo URL and install command fixed
 
+### Nextflow 26 / strict-parser compatibility (complete, 2026-07-16)
+- [x] `conf/base.config`, `conf/test.config`, `nextflow.config` — `check_max()` → `resourceLimits`
+- [x] `main.nf` — help/version guards moved into entry workflow; `helpMessage()` function
+- [x] `workflows/install.nf` — container catalogue as `containerList()` function
+- [x] `workflows/main.nf` + `nextflow.config` — event handlers relocated to config (println-based)
+- [x] `tests/**` — all 18 module/subworkflow test scripts modernized; stale `assembly_hybrid` deleted
+- [x] Nextflow floor raised to `>=24.04.0` (manifest, CI pin, README badge, docs/usage.md)
+- [x] Whole-repo `nextflow lint` error-free (was 58); all 3 modes pass `-stub -profile ci` on 26.04.6
+
 ---
 
 ## What's Left To Do
@@ -337,6 +400,16 @@ Listeria isolate assemblies. Decision confirmed; no action needed.
 - [ ] MultiQC Porechop ABI: no native module; consider custom content section if needed
 - [ ] Consider publishDir for Filtlong/Porechop output reads (currently only logs published)
 
+### Optional modernization (intentionally declined — see "Maintenance posture")
+Non-fatal and deliberately NOT done for this frozen artifact. Listed only so a future
+maintainer who revives the pipeline knows what's outstanding:
+- [ ] Clear remaining `nextflow lint` **warnings** (131): `Channel` → `channel`, explicit
+      closure params, unused subworkflow inputs (prefix `_`). Non-fatal; prerequisite for static typing.
+- [ ] Migrate `publishDir` → the workflow **output DSL** (`publish:` + `output {}`, stable
+      in 25.10). `publishDir` is supported-but-being-deprecated; not flagged by lint in 26.04.6.
+- [ ] Adopt **static typing** (records, typed I/O; opt-in `nextflow.enable.types`, NF 26.04). Largest effort.
+- [ ] Replace config-based event handlers with a plugin (removes the "config workflow handlers deprecated" warning).
+
 ---
 
 ## Gotchas and Known Issues
@@ -347,10 +420,10 @@ required because the branch operator evaluates file content (`report.text.contai
 An empty stub file would route all samples to the failed branch, causing downstream
 processes to be silently skipped in CI. The stub must stay non-empty.
 
-### Stale test: tests/subworkflows/assembly_hybrid/
-This directory references the now-deleted `assembly_hybrid.nf`. Do not run it.
-The file contains a comment explaining the replacement. The 3 new subworkflow tests
-are in `assembly_unicycler/`, `assembly_flye_unicycler/`, `assembly_polypolish/`.
+### Removed test: tests/subworkflows/assembly_hybrid/
+Deleted (2026-07-16) — it referenced the long-removed `assembly_hybrid.nf` and failed
+to compile under the strict parser. The 3 current subworkflow tests are
+`assembly_unicycler/`, `assembly_flye_unicycler/`, `assembly_polypolish/`.
 
 ### Partial test FASTQ files in repo
 `test_R1_small.fastq.gz` and `test_R2_small.fastq.gz` (10k subsampled pairs) are committed
@@ -378,9 +451,13 @@ Required for Singularity --no-home compatibility. Do not remove.
 ### Coverage check uses `bc` for float arithmetic
 Available in the seqkit container. Worth noting if the container is ever swapped.
 
-### `workflow.failOnError = false`
-Pipeline continues past failures (intentional for batch processing). Check the
-execution trace for individual sample failures.
+### Continuing past sample failures is via errorStrategy (not workflow.failOnError)
+The old `workflow.failOnError = false` line was removed (2026-07-16) — it was never a
+real Nextflow option (a no-op, unrecognized on Nextflow 26). Continuing past individual
+sample failures comes from the per-process `errorStrategy` in conf/base.config (`retry`
+on infra exit codes, else `finish`). NOTE: `finish` stops submitting *new* work on a
+tool error rather than skipping the sample; for true "skip and carry on" use
+`errorStrategy 'ignore'`. Check the execution trace for individual sample failures.
 
 ### MultiQC channel collection
 When adding new modules, their QC outputs must be mixed into `ch_multiqc_files` in
@@ -398,6 +475,23 @@ to find the output file in CI stub runs.
 Unlike coverage check (which excludes failed samples from assembly), circularity check
 is informational only. All samples proceed to dnaapler regardless. Warnings appear in
 the Nextflow log and in the published report files.
+
+### resourceLimits is evaluated eagerly — re-assert after changing max_*
+`resourceLimits = [cpus: params.max_cpus, ...]` in conf/base.config captures the params
+values at include time (the defaults). Any profile that overrides `params.max_*` (ci,
+test) MUST re-assign `process.resourceLimits` *after* the override, or the cap keeps the
+default 12/128.GB/24.h. CLI `--max_*` does not flow into an already-evaluated resourceLimits.
+
+### Config event handlers can't use `log`
+`workflow.onComplete`/`onError` live in nextflow.config. Inside config closures `log` is
+null (`NullPointerException: Cannot invoke method info() on null object`), so they use
+`println` / `System.err.println`. Do not switch them back to `log.info`.
+
+### input_check schema path uses ${launchDir}
+`subworkflows/local/input_check.nf` resolves the samplesheet schema as
+`${launchDir}/assets/schema_input.json`, which only works when Nextflow is launched from
+the repo root (CI and normal usage do). Running `nextflow run /abs/path/main.nf` from
+elsewhere breaks it — `${projectDir}` would be more robust (not changed yet).
 
 ---
 
