@@ -1,6 +1,6 @@
 # Hybrid Bacterial Genome Assembly Pipeline
 
-[![Nextflow](https://img.shields.io/badge/nextflow%20DSL2-%E2%89%A523.04.0-23aa62.svg)](https://www.nextflow.io/)
+[![Nextflow](https://img.shields.io/badge/nextflow%20DSL2-%E2%89%A524.04.0-23aa62.svg)](https://www.nextflow.io/)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg)](https://sylabs.io/docs/)
 [![CI](https://github.com/talasjudit/listeria-hybrid-assembly-nf/actions/workflows/ci.yml/badge.svg)](https://github.com/talasjudit/listeria-hybrid-assembly-nf/actions/workflows/ci.yml)
 
@@ -94,7 +94,7 @@ flowchart LR
 
 ## Prerequisites
 
-- **Nextflow** >= 23.04.0
+- **Nextflow** >= 24.04.0
 - **Singularity/Apptainer**
 - **Git**
 

@@ -17,7 +17,7 @@ Comprehensive guide for running the hybrid bacterial genome assembly pipeline.
 
 ### Required Software
 
-- **Nextflow** ≥ 23.04.0
+- **Nextflow** ≥ 24.04.0
 - **Singularity/Apptainer** (any recent version)
 - **Git** (for cloning repository)
 
