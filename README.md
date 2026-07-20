@@ -105,8 +105,8 @@ flowchart LR
 git clone https://github.com/talasjudit/hylisteria-nf.git
 cd hylisteria-nf
 
-# Download containers (run on a node with internet access)
-nextflow run main.nf --install -profile qib
+# Download containers (run on a node with internet access, e.g. `software` on QIB HPC)
+nextflow run main.nf --install -profile singularity
 
 # If running on a node with no internet access, set this environment variable before running the pipeline
 export NXF_OFFLINE=true

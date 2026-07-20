@@ -21,7 +21,7 @@ PIPELINE_DIR="/path/to/hylisteria-nf"
 
 cd "${PIPELINE_DIR}"
 
-# Run in offline mode (containers must already be cached via: nextflow run main.nf --install -profile singularity,qib)
+# Run in offline mode (containers must already be cached via: nextflow run main.nf --install -profile singularity)
 export NXF_OFFLINE=true
 
 # --- Default mode: Unicycler hybrid assembly ---
