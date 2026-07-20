@@ -46,7 +46,7 @@ Downloads all Singularity containers required by the pipeline.
 ### Usage
 
 ```bash
-nextflow run main.nf -entry INSTALL -profile singularity
+nextflow run main.nf --install -profile singularity
 ```
 
 Run this once before the first pipeline run, from a node with internet access.

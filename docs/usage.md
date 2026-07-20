@@ -57,21 +57,21 @@ nextflow -version
 ### 2. Clone Repository
 
 ```bash
-git clone https://github.com/talasjudit/listeria-hybrid-assembly-nf.git
-cd listeria-hybrid-assembly-nf
+git clone https://github.com/talasjudit/hylisteria-nf.git
+cd hylisteria-nf
 ```
 
 ### 3. Download Containers
 
 **On HPC (from login node with internet access):**
 ```bash
-nextflow run main.nf -entry INSTALL -profile singularity \
+nextflow run main.nf --install -profile singularity \
     --singularity_cachedir /shared/containers
 ```
 
 **On local system:**
 ```bash
-nextflow run main.nf -entry INSTALL -profile singularity
+nextflow run main.nf --install -profile singularity
 ```
 
 This downloads ~5-10 GB of containers. Run this once and containers are reused for all pipeline runs.

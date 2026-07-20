@@ -74,7 +74,7 @@ nextflow run tests/modules/fastp/test_fastp.nf -c nextflow.config -profile singu
 Error: could not open image .../singularity_cache/fastp-1.0.1.sif
 Solution: 
   - Run from project root, not from test directory
-  - Ensure containers are installed: nextflow run main.nf -entry INSTALL -profile singularity
+  - Ensure containers are installed: nextflow run main.nf --install -profile singularity
 ```
 
 ### Test data not found

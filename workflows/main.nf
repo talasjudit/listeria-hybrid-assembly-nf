@@ -3,7 +3,7 @@
 ========================================================================================
     Hybrid Bacterial Genome Assembly Pipeline - Main Workflow
 ========================================================================================
-    Github: https://github.com/talasjudit/listeria-hybrid-assembly-nf
+    Github: https://github.com/talasjudit/hylisteria-nf
 
     Pipeline Steps:
     1. Parse samplesheet and validate inputs

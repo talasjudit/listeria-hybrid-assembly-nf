@@ -7,7 +7,7 @@
     Downloads and verifies all Singularity containers for the hybrid assembly pipeline.
     Uses storeDir for automatic caching - already-downloaded containers are skipped.
 
-    Usage: nextflow run main.nf -entry INSTALL -profile singularity -resume
+    Usage: nextflow run main.nf --install -profile singularity -resume
 ========================================================================================
 */
 

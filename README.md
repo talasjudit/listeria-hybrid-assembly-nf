@@ -2,7 +2,7 @@
 
 [![Nextflow](https://img.shields.io/badge/nextflow%20DSL2-%E2%89%A524.04.0-23aa62.svg)](https://www.nextflow.io/)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg)](https://sylabs.io/docs/)
-[![CI](https://github.com/talasjudit/listeria-hybrid-assembly-nf/actions/workflows/ci.yml/badge.svg)](https://github.com/talasjudit/listeria-hybrid-assembly-nf/actions/workflows/ci.yml)
+[![CI](https://github.com/talasjudit/hylisteria-nf/actions/workflows/ci.yml/badge.svg)](https://github.com/talasjudit/hylisteria-nf/actions/workflows/ci.yml)
 
 A Nextflow pipeline for hybrid assembly of bacterial genomes using Illumina short reads and Oxford Nanopore long reads.
 
@@ -102,11 +102,11 @@ flowchart LR
 
 ```bash
 # Clone repository
-git clone https://github.com/talasjudit/listeria-hybrid-assembly-nf.git
-cd listeria-hybrid-assembly-nf
+git clone https://github.com/talasjudit/hylisteria-nf.git
+cd hylisteria-nf
 
 # Download containers (run on a node with internet access)
-nextflow run main.nf -entry INSTALL -profile qib
+nextflow run main.nf --install -profile qib
 
 # If running on a node with no internet access, set this environment variable before running the pipeline
 export NXF_OFFLINE=true
@@ -120,7 +120,7 @@ nextflow run main.nf \
 
 ## Documentation
 
-For full documentation, see the **[Wiki](https://github.com/talasjudit/listeria-hybrid-assembly-nf/wiki)**:
+For full documentation, see the **[Wiki](https://github.com/talasjudit/hylisteria-nf/wiki)**:
 
 ## License
 

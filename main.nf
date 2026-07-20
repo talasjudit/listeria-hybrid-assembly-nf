@@ -3,7 +3,7 @@
 ========================================================================================
     Hybrid Bacterial Genome Assembly Pipeline - Entry Point
 ========================================================================================
-    Github: https://github.com/talasjudit/listeria-hybrid-assembly-nf
+    Github: https://github.com/talasjudit/hylisteria-nf
 
     This is the main entry point for the pipeline. It handles:
     - Help and version display
@@ -42,7 +42,7 @@ def helpMessage() {
 
     Usage:
       # Install containers (run on login node with internet)
-      nextflow run main.nf -entry INSTALL -profile singularity -resume
+      nextflow run main.nf --install -profile singularity -resume
 
       # Run pipeline (can run on compute nodes)
       nextflow run main.nf --input samplesheet.csv --outdir results -profile singularity,slurm
@@ -74,13 +74,13 @@ def helpMessage() {
       -profile local         Use local executor
       -profile test          Run with minimal test resources
 
-    Entry Points:
+    Modes:
       (default)              Run the assembly pipeline
-      -entry INSTALL         Download and cache containers
+      --install              Download and cache containers, then exit
 
     Examples:
       # 1. Install containers first (on login node)
-      nextflow run main.nf -entry INSTALL -profile singularity -resume
+      nextflow run main.nf --install -profile singularity -resume
 
       # 2. Basic pipeline run on SLURM
       nextflow run main.nf -profile singularity,slurm \\
@@ -107,28 +107,17 @@ def helpMessage() {
         --max_cpus 8 \\
         --max_memory 32.GB
 
-    For more details, see: https://github.com/talasjudit/listeria-hybrid-assembly-nf
+    For more details, see: https://github.com/talasjudit/hylisteria-nf
     """.stripIndent()
 }
 
 /*
 ========================================================================================
-    NAMED WORKFLOWS
+    RUN MAIN WORKFLOW (SINGLE ENTRY POINT)
 ========================================================================================
-*/
-
-/*
- * WORKFLOW: INSTALL
- * Download and cache all Singularity containers
- */
-workflow INSTALL {
-    INSTALL_CONTAINERS()
-}
-
-/*
-========================================================================================
-    RUN MAIN WORKFLOW (DEFAULT ENTRY POINT)
-========================================================================================
+    Everything is routed from this one entry workflow. The `-entry` option is NOT
+    supported by the strict syntax parser (default in Nextflow 26.04), so container
+    installation is selected with `--install` rather than `-entry INSTALL`.
 */
 
 workflow {
@@ -143,6 +132,12 @@ workflow {
         Pipeline: ${workflow.manifest.name}
         Version:  ${workflow.manifest.version}
         """.stripIndent()
+        return
+    }
+
+    // Container installation mode: download + cache all SIFs, then stop.
+    if (params.install) {
+        INSTALL_CONTAINERS()
         return
     }
 

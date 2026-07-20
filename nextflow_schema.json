@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/talasjudit/listeria-hybrid-assembly-nf/main/nextflow_schema.json",
-    "title": "listeria-hybrid-assembly-nf pipeline parameters",
+    "$id": "https://raw.githubusercontent.com/talasjudit/hylisteria-nf/main/nextflow_schema.json",
+    "title": "hylisteria-nf pipeline parameters",
     "description": "Hybrid bacterial genome assembly pipeline using Illumina and Nanopore sequencing data",
     "type": "object",
     "$defs": {
@@ -192,6 +192,12 @@
                     "description": "Display version information and exit",
                     "fa_icon": "fas fa-code-branch",
                     "hidden": true
+                },
+                "install": {
+                    "type": "boolean",
+                    "description": "Download and cache all Singularity containers, then exit",
+                    "help_text": "Run this once on a node with internet access before running the pipeline. Replaces the old '-entry INSTALL', which the strict syntax parser (Nextflow 26.04+) no longer supports.",
+                    "fa_icon": "fas fa-download"
                 },
                 "validate_params": {
                     "type": "boolean",

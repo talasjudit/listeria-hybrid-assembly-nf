@@ -8,7 +8,7 @@
 #SBATCH --mail-user=YOUR_EMAIL
 
 # ============================================================
-# Generate test data files for listeria-hybrid-assembly-nf
+# Generate test data files for hylisteria-nf
 #
 # Produces three types of committed test data from BL07-034:
 #   1. Assembly FASTAs (Flye + Unicycler) - for dnaapler, dnadiff,
@@ -37,7 +37,7 @@ export NXF_OFFLINE=true
 
 # --- Configuration: edit these paths for your environment ---
 RAW_DATA_DIR="/path/to/your/raw/data"
-PIPELINE_MOUNT="/path/to/listeria-hybrid-assembly-nf"
+PIPELINE_MOUNT="/path/to/hylisteria-nf"
 NANOPORE_FILE="${RAW_DATA_DIR}/your_sample_nanopore.fastq.gz"
 R1_FILE="${RAW_DATA_DIR}/your_sample_R1.fastq.gz"
 R2_FILE="${RAW_DATA_DIR}/your_sample_R2.fastq.gz"

@@ -7,7 +7,7 @@
 #SBATCH --mail-type=end,fail
 #SBATCH --mail-user=YOUR_EMAIL
 
-# Example SLURM submission script for listeria-hybrid-assembly-nf
+# Example SLURM submission script for hylisteria-nf
 # The head job only needs minimal resources (4G, 2 CPUs) -- Nextflow
 # submits each pipeline process as its own SLURM job automatically.
 #
@@ -17,11 +17,11 @@
 source activate nextflow
 
 # Pipeline location — always cd here so launchDir and singularity_cachedir are stable
-PIPELINE_DIR="/path/to/listeria-hybrid-assembly-nf"
+PIPELINE_DIR="/path/to/hylisteria-nf"
 
 cd "${PIPELINE_DIR}"
 
-# Run in offline mode (containers must already be cached via: nextflow run main.nf -entry INSTALL -profile singularity,qib)
+# Run in offline mode (containers must already be cached via: nextflow run main.nf --install -profile singularity,qib)
 export NXF_OFFLINE=true
 
 # --- Default mode: Unicycler hybrid assembly ---

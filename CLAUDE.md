@@ -4,7 +4,7 @@
 
 A **Nextflow DSL2 pipeline** for hybrid assembly of Listeria (and other bacterial)
 genomes using Illumina short reads and Oxford Nanopore long reads. Target
-repository: `github.com/talasjudit/listeria-hybrid-assembly-nf`.
+repository: `github.com/talasjudit/hylisteria-nf`.
 
 The pipeline was converted from a working SLURM bash pipeline (BSUP-2555) and is
 now a fully structured Nextflow project. A three-mode assembly strategy has been
@@ -27,8 +27,8 @@ the "Nextflow language level" architecture note and the strict-parser gotchas be
 ## Current File Structure
 
 ```
-listeria-hybrid-assembly-nf/
-├── main.nf                              # Entry point: help, version, INSTALL routing
+hylisteria-nf/
+├── main.nf                              # Single entry workflow: help, version, --install, pipeline
 ├── nextflow.config                      # Params, profiles, manifest, plugins
 ├── nextflow_schema.json                 # Parameter validation schema (nf-schema)
 ├── CLAUDE.md                            # Project instructions for Claude Code
@@ -275,6 +275,11 @@ all agree).
   config handlers as *deprecated* ("use the entry workflow or a plugin") — a non-fatal
   warning accepted for now; a plugin is the eventual fix.
 
+- **`-entry` is unsupported** — the strict parser rejects the `-entry` CLI option
+  entirely. Container installation is therefore selected with `--install`
+  (`params.install`) from the single entry workflow, not `-entry INSTALL`. The named
+  `workflow INSTALL` wrapper was removed.
+
 ### Maintenance posture: frozen reproducibility artifact
 
 This pipeline exists so collaborators across institutes run *exactly the same* analysis
@@ -317,7 +322,7 @@ The intended end-state is **frozen and pinned**:
 ## What Has Been Implemented
 
 ### Core pipeline (complete)
-- [x] `main.nf` entry point with help, version, INSTALL routing
+- [x] `main.nf` single entry workflow: help, version, `--install`, pipeline routing
 - [x] `nextflow.config` — `assembly_mode` enum, `reference` param, all profiles
 - [x] `nextflow_schema.json` — enum validation for `assembly_mode`, `reference` field
 - [x] `workflows/install.nf` — all 12 containers with real URLs + storeDir caching
@@ -486,6 +491,22 @@ default 12/128.GB/24.h. CLI `--max_*` does not flow into an already-evaluated re
 `workflow.onComplete`/`onError` live in nextflow.config. Inside config closures `log` is
 null (`NullPointerException: Cannot invoke method info() on null object`), so they use
 `println` / `System.err.println`. Do not switch them back to `log.info`.
+
+### `-entry` is not supported by the strict parser — use `--install`
+Nextflow 26.04 rejects the `-entry` CLI option outright: *"The `-entry` option is not
+supported with the strict parser -- use a param to run a named workflow from the entry
+workflow"*. The old `nextflow run main.nf -entry INSTALL` therefore fails. Containers are
+now installed with `nextflow run main.nf --install -profile singularity`. NOTE: when the
+`-entry` launch aborts, the config `onComplete`/`onError` handlers *also* throw NPEs
+(`workflow` is null that early) — those are a symptom that masks the real error, not the cause.
+
+### nextflow_schema.json is not enforced at runtime
+There is no `validateParameters()` call anywhere, so `nextflow_schema.json` (and
+`params.validate_params`) do not actually validate params at runtime — the file is
+documentation / nf-core tooling metadata. Nothing is missing, though: the
+`assembly_mode` enum is enforced by an explicit guard in `workflows/main.nf` (errors
+with the valid options listed). `assets/schema_input.json` *is* used at runtime, via
+`samplesheetToList()` in `subworkflows/local/input_check.nf`.
 
 ### input_check schema path uses ${launchDir}
 `subworkflows/local/input_check.nf` resolves the samplesheet schema as
